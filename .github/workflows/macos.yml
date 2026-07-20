@@ -119,18 +119,16 @@ jobs:
           mkdir -p 繁中字型
           cp fonts/elvira1_zh14.dcjk fonts/elvira1_zh16.dcjk fonts/elvira1_zh24.dcjk \
              translations/elvira1_zh.tab 繁中字型/
-          cat > 使用說明.txt <<'EOF'
-古堡禁地 (Elvira 1, 1990) 繁體中文版 — macOS (universal, Apple Silicon + Intel)
-安裝:
-1. 對 ScummVM.app 按右鍵 → 打開(首次繞過 Gatekeeper)。
-2. 把你合法擁有的 Elvira (Floppy/DOS) 全部檔案放進一個資料夾(以下稱「遊戲夾」)。
-3. [重要] 把本包「繁中字型/」內的 4 個檔(elvira1_zh14/16/24.dcjk、elvira1_zh.tab)
-   複製進你的「遊戲夾」(要和 gamepc/tables01 等原檔在同一夾, 引擎才載得到中文)。
-4. 想要 MT-32 原版配樂: 也把 MT32_CONTROL.ROM / MT32_PCM.ROM 放進遊戲夾。
-5. 開 ScummVM.app → Add Game → 指向遊戲夾 → 進遊戲設定 Graphics 建議 Scaler=Normal, Scale=2x
-   (繁中疊層為 640x400 設計;放大請用全螢幕)。
-熱鍵: F7 無敵, TAB 地圖; 存檔 Alt+數字, 讀檔 Ctrl+數字。
-EOF
+          {
+            printf '古堡禁地 (Elvira 1, 1990) 繁體中文版 — macOS (universal, Apple Silicon + Intel)\n'
+            printf '安裝:\n'
+            printf '1. 對 ScummVM.app 按右鍵 → 打開(首次繞過 Gatekeeper)。\n'
+            printf '2. 把你合法擁有的 Elvira (Floppy/DOS) 全部檔案放進一個資料夾(以下稱「遊戲夾」)。\n'
+            printf '3. [重要] 把本包「繁中字型/」內的 4 個檔複製進你的「遊戲夾」(要和 gamepc/tables01 等原檔同夾, 引擎才載得到中文)。\n'
+            printf '4. 想要 MT-32 原版配樂: 也把 MT32_CONTROL.ROM / MT32_PCM.ROM 放進遊戲夾。\n'
+            printf '5. 開 ScummVM.app → Add Game → 指向遊戲夾 → Graphics 設 Scaler=Normal, Scale=2x(繁中疊層為 640x400 設計;放大用全螢幕)。\n'
+            printf '熱鍵: F7 無敵, TAB 地圖; 存檔 Alt+數字, 讀檔 Ctrl+數字。\n'
+          } > 使用說明.txt
 
       - name: Package tar.gz + dmg
         run: |
