@@ -73,7 +73,7 @@ jobs:
             # [HARD] CXXFLAGS/LDFLAGS 當環境變數前綴(ScummVM configure 非 autoconf)
             ( cd sv && PATH="$GITHUB_WORKSPACE/sdl-$A/bin:$PATH" \
                        CXXFLAGS="-arch $A -mmacosx-version-min=${MIN_MACOS}" \
-                       LDFLAGS="-arch $A -mmacosx-version-min=${MIN_MACOS} $OSX_FW" \
+                       LDFLAGS="-arch $A -mmacosx-version-min=${MIN_MACOS} $OSX_FW -L$GITHUB_WORKSPACE/sdl-$A/lib -lSDL2" \
               $RUN ./configure --disable-all-engines --enable-engine=agos --enable-release \
                    $LEAN --with-sdl-prefix="$GITHUB_WORKSPACE/sdl-$A" )
             grep -q USE_MT32EMU sv/config.h || { echo "!! MT32EMU 未啟用"; exit 1; }   # [HARD] 保留 MT-32
@@ -91,7 +91,7 @@ jobs:
           # 重新 configure arm64 只為 make bundle 產生 .app 骨架
           ( cd sv && PATH="$GITHUB_WORKSPACE/sdl-arm64/bin:$PATH" \
                      CXXFLAGS="-arch arm64 -mmacosx-version-min=${MIN_MACOS}" \
-                     LDFLAGS="-arch arm64 -mmacosx-version-min=${MIN_MACOS} $OSX_FW" \
+                     LDFLAGS="-arch arm64 -mmacosx-version-min=${MIN_MACOS} $OSX_FW -L$GITHUB_WORKSPACE/sdl-arm64/lib -lSDL2" \
             ./configure --disable-all-engines --enable-engine=agos --enable-release \
               --disable-mad --disable-vorbis --disable-flac --disable-fluidsynth --disable-fluidlite \
               --disable-mpeg2 --disable-theoradec --disable-faad --disable-libcurl --disable-a52 \
