@@ -50,6 +50,10 @@ jobs:
               LDFLAGS="-arch $A -mmacosx-version-min=${MIN_MACOS}"
             $RUN make -j3 && $RUN make install
             cd ..
+            # 在 link 前就把 dylib 的 install_name 設成 @executable_path → 兩弧一致, ScummVM link 時
+            # 直接記錄此路徑, 免後續逐弧 install_name_tool -change(否則另一弧殘留 runner 路徑)。
+            install_name_tool -id "@executable_path/../Frameworks/libSDL2-2.0.0.dylib" \
+              "$GITHUB_WORKSPACE/sdl-$A/lib/libSDL2-2.0.0.dylib"
           done
           # 防呆:dylib >1MB(真 SDL2, 非 sdl2-compat shim)且不見 SDL3
           for A in arm64 x86_64; do
@@ -115,7 +119,9 @@ jobs:
           # 驗證:雙弧 + 無殘留路徑
           lipo -info "$APP/Contents/MacOS/scummvm"
           lipo -info "$APP/Contents/Frameworks/libSDL2-2.0.0.dylib"
-          otool -L "$APP/Contents/MacOS/scummvm" | grep -qE "$RUNNER_TEMP|/Users/runner" && { echo "!! 殘留 runner 路徑"; exit 1; } || true
+          if otool -L "$APP/Contents/MacOS/scummvm" | grep -q "/Users/runner"; then
+            echo "!! 殘留 runner 路徑:"; otool -L "$APP/Contents/MacOS/scummvm" | grep "/Users/runner"; exit 1
+          fi
 
       - name: Add CHT assets + 使用說明
         run: |
