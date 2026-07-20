@@ -1,0 +1,48 @@
+# ===== 公開 repo 為 patch-only:遊戲原檔/ROM/版權素材一律不入庫 =====
+# 遊戲原檔(Elvira 1 floppy)
+original_game/
+run_game/
+build/scummvm-src/
+build/**/scummvm-src/
+*.zip
+*.rar
+# AGOS 遊戲資產指紋
+**/gamepc
+**/GAMEPC
+**/tables[0-9]*
+**/TABLES[0-9]*
+**/*.vga
+**/*.VGA
+**/*.snd
+**/*.SND
+**/start
+**/START
+**/*.mus
+# MT-32 ROM(版權)
+*.ROM
+*.rom
+MT32_*.ROM
+# 推廣片素材(作 Release 素材,不入 git)
+*.mp4
+*.gif
+*.mkv
+*.wav
+promo/*.mp3
+# 打包產物
+dist-all/*.tar.gz
+dist-all/*.zip
+dist-all/*.dmg
+dist-all/*.AppImage
+# 手冊掃描 + 封面(版權;README 只引用文字段落,不 host 掃描圖)
+manual/
+# 英文遊戲全文 dump(版權;repo 只放中文譯表 zh.tsv/zh.tab, 不放英文原文)
+strings/
+# fan-out 翻譯的輸入批次含英文原文 + 中間產物
+translations/batches/
+translations/zh_placeholder.tsv
+# debug 截圖(僅 curate 過的 docs/img/ 入庫)
+screenshots/
+# 暫存
+*.o
+*.tmp
+__pycache__/
