@@ -33,8 +33,17 @@
 - **無敵(F7)**:每幀強制 Life(`_variableArray[5]`)=99 + overlay「無敵模式」指示器。RE:狀態變數 `[0]`STR`[1]`RES`[2]`DEX`[3]`SKI`[5]`Life`[6]`EXP(`printStats`)。
 - **地圖(TAB)**:`me()`→`derefItem(parent)` 取當前房間,`getExitOf_e1(room,d)` BFS 走 N/E/S/W(`_chtVisited` 迷霧),overlay 畫房間框+連線+當前高亮+標題「地圖」。
 
-## ⏳ 剩餘
-- **verb 面板中文**:✅ 已由 overlay 16px 解決(不需疊層覆蓋美術)。
+## ✅ P7 三平台打包 + P8 交付
+- **Linux** x86_64 `.tar.gz`:patched scummvm + 非系統 .so + 3 字型 + tab + `play-elvira.sh`(鎖 2x, MT-32)。**實測中文正常**。
+- **Windows** x64 `.zip`:mingw 交叉編(`agos-mingw` image + SDL2 2.30.9 mingw)+ 全 DLL(SDL2/SDL2_net/libgcc/libstdc++/libwinpthread)+ ScummVM 資料 + `.bat`(鎖 2x)。**wine 實測中文面板正常**。⚠ munt(mt32emu)mingw 連結頑固(`mt32emu_*` C API 符號 ld 不拉,group/-u/ranlib 皆無效)→ Windows 用 **AdLib/OPL**(原版配樂, 非 MT-32)。
+- **macOS** universal:`.github/workflows/macos.yml`(macos-14 + Rosetta x86_64 + 自編 pinned SDL2 2.30.9 + lipo + install_name_tool + codesign, LEAN disable 外部庫, 保留 mt32emu)。push 觸發 CI。
+- **推廣片**:`古堡禁地-推廣片.mp4`(78s, MT-32 原版配樂 + 實機中文:片頭/面板/對白/地圖/無敵, Noto CJK 標題卡/尾卡)。
+- **GitHub repo**(patch-only, 45 檔, leak-clean)已推 https://github.com/wicanr2/Elvira-Mistress_of_the_Dark_1990-cht
+- **leak-scan**:遊戲原檔/ROM/影片/英文全文 dump/手冊掃描皆 gitignore + 打包產物複檢乾淨。
+
+## ⏳ 剩餘 / 待辦
+- macOS CI 首跑驗證(push 後在 GitHub Actions 監看, 可能需迭代)。
+- (可選)Waxworks 對等的 F8 除霧 / F6 給物;munt-mingw 連結若解出可讓 Windows 也上 MT-32。
 - **P7 Windows/macOS 打包**:mingw 交叉編(Windows);macOS universal 走 macos-14+Rosetta+自編 SDL2 CI(kb `mac-app-cross-pack`)。
 - **P8 推廣片**:原版 MT-32 配樂 + 實機畫面。
 - **git push**:公開 repo patch-only(需使用者確認後執行)。

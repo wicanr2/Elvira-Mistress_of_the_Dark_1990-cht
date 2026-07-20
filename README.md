@@ -61,6 +61,22 @@
 
 ---
 
+## 下載與遊玩（三平台）
+
+到 [Releases](../../releases) 下載對應平台的整合包（內含 patched ScummVM + 繁中字型／譯表 + 啟動器）。**遊戲原檔請自備**：把你合法擁有的 Elvira（Floppy/DOS）全部檔案放進 `game/` 資料夾即可。
+
+| 平台 | 檔案 | 配樂 | 備註 |
+|---|---|---|---|
+| **Linux** x86_64 | `.tar.gz` | MT-32 / AdLib | 執行 `play-elvira.sh`；MT-32 需自備 `MT32_*.ROM` 放 `game/` |
+| **Windows** x64 | `.zip` | AdLib/OPL | 雙擊 `play-elvira.bat`；帶全 DLL |
+| **macOS** universal | `.dmg` / `.tar.gz` | MT-32 / AdLib | Apple Silicon + Intel；右鍵→打開繞過 Gatekeeper，字型複製進遊戲夾 |
+
+啟動器已鎖 `--scale-factor=2`（繁中 overlay 疊層為 640×400 設計）；想放大請用 ScummVM 全螢幕。
+
+> 三平台皆自同一份 `agos-cht.patch` 源碼編譯：Linux（docker）、Windows（mingw 交叉編）、macOS（GitHub Actions，`macos-14` + Rosetta + 自編 SDL2 出 universal）。
+
+---
+
 ## 劇情：愛梅達女爵的詛咒
 
 愛薇拉的曾曾祖母 **愛梅達女爵** 是住在古堡的邪惡女巫。她與巫師 **貝蒙君主** 為伴、行邪術；貝蒙狩獵時中暗箭而死。愛梅達的丈夫 **艾力克公爵** 長年在印度經商，返家即被愛梅達吸血、以家傳寶劍刺心而死（後轉世成玩家的曾祖父）。愛梅達死後，撒旦賜她復活之權；她把開啟「惡魔統治殘冊」的六把鑰匙交給忠心的鬼魅僕人，伺機再起。

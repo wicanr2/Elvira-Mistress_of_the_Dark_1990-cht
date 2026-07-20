@@ -46,3 +46,6 @@ screenshots/
 *.o
 *.tmp
 __pycache__/
+
+# 打包/推廣片產物目錄(整個排除)
+dist-all/

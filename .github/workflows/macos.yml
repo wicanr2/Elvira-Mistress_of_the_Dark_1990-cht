@@ -1,0 +1,154 @@
+name: macOS Universal (古堡禁地 CHT)
+
+# patch-only repo:CI 取 ScummVM v2.9.1 源碼 + 套 agos-cht.patch,自編 universal ScummVM.app。
+# [HARD 踩雷] 只用 macos-14;x86_64 弧走 Rosetta(arch -x86_64)各編一次 + lipo;
+# 自編 pinned SDL2 2.30.9(別 brew:2026 起 sdl2-compat→SDL3 黑畫面);LEAN 全 disable 外部庫
+# (否則撿到 runner brew 的 arm64-only .a → x86_64 弧連結失敗);CXXFLAGS 當環境變數前綴;
+# SDL2 dylib lipo 進 .app/Frameworks + install_name_tool + codesign。
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'patches/**'
+      - '.github/workflows/macos.yml'
+      - 'fonts/**'
+      - 'translations/elvira1_zh.tab'
+
+env:
+  SV_TAG: v2.9.1
+  SDL2_VER: 2.30.9
+  MIN_MACOS: "11.0"
+
+jobs:
+  build:
+    runs-on: macos-14   # [HARD] macos-13(Intel)退役,只用 macos-14
+    steps:
+      - name: Checkout CHT repo (patch + fonts)
+        uses: actions/checkout@v4
+
+      - name: Fetch ScummVM ${{ env.SV_TAG }}
+        run: git clone --depth 1 --branch "$SV_TAG" https://github.com/scummvm/scummvm.git sv
+
+      - name: Apply agos-cht.patch
+        run: cd sv && git apply --whitespace=nowarn ../patches/agos-cht.patch
+
+      - name: Build pinned SDL2 ${{ env.SDL2_VER }} (both arches, dylib)
+        run: |
+          set -e
+          curl -fsSL -o sdl.tar.gz "https://github.com/libsdl-org/SDL/releases/download/release-${SDL2_VER}/SDL2-${SDL2_VER}.tar.gz"
+          tar xf sdl.tar.gz
+          for A in arm64 x86_64; do
+            rm -rf build-sdl-$A && mkdir build-sdl-$A && cd build-sdl-$A
+            if [ "$A" = "x86_64" ]; then RUN="arch -x86_64"; else RUN=""; fi
+            $RUN ../SDL2-${SDL2_VER}/configure --prefix="$PWD/../sdl-$A" \
+              --enable-shared --disable-static \
+              CFLAGS="-arch $A -mmacosx-version-min=${MIN_MACOS}" \
+              LDFLAGS="-arch $A -mmacosx-version-min=${MIN_MACOS}"
+            $RUN make -j3 && $RUN make install
+            cd ..
+          done
+          # 防呆:dylib >1MB(真 SDL2, 非 sdl2-compat shim)且不見 SDL3
+          for A in arm64 x86_64; do
+            sz=$(stat -f%z sdl-$A/lib/libSDL2-2.0.0.dylib)
+            echo "SDL2 $A dylib size=$sz"
+            [ "$sz" -gt 1000000 ] || { echo "!! SDL2 $A dylib 太小,疑似 shim"; exit 1; }
+            otool -L sdl-$A/lib/libSDL2-2.0.0.dylib | grep -qi SDL3 && { echo "!! 連到 SDL3"; exit 1; } || true
+          done
+
+      - name: Build ScummVM per-arch (AGOS + CHT, LEAN)
+        run: |
+          set -e
+          LEAN="--disable-mad --disable-vorbis --disable-flac --disable-fluidsynth --disable-fluidlite \
+                --disable-mpeg2 --disable-theoradec --disable-faad --disable-libcurl --disable-a52 \
+                --disable-mikmod --disable-gif --disable-jpeg --disable-png --disable-freetype2 \
+                --disable-zlib --disable-tts --disable-discord --disable-sndio --disable-timidity \
+                --disable-sparkle --disable-retrowave --disable-readline --disable-libunity"
+          for A in arm64 x86_64; do
+            if [ "$A" = "x86_64" ]; then RUN="arch -x86_64"; else RUN=""; fi
+            ( cd sv && $RUN make distclean || true )
+            # [HARD] CXXFLAGS/LDFLAGS 當環境變數前綴(ScummVM configure 非 autoconf)
+            ( cd sv && CXXFLAGS="-arch $A -mmacosx-version-min=${MIN_MACOS}" \
+                       LDFLAGS="-arch $A -mmacosx-version-min=${MIN_MACOS}" \
+              $RUN ./configure --disable-all-engines --enable-engine=agos --enable-release \
+                   $LEAN --with-sdl-prefix="$PWD/sdl-$A" )
+            grep -q USE_MT32EMU sv/config.h || { echo "!! MT32EMU 未啟用"; exit 1; }   # [HARD] 保留 MT-32
+            ( cd sv && $RUN make -j3 scummvm-static )
+            cp sv/scummvm-static "scummvm-$A"
+            ( cd sv && $RUN make distclean || true )
+          done
+          # lipo universal 主程式
+          lipo -create scummvm-arm64 scummvm-x86_64 -output scummvm-universal
+          lipo -info scummvm-universal
+
+      - name: Bundle ScummVM.app (universal)
+        run: |
+          set -e
+          # 重新 configure arm64 只為 make bundle 產生 .app 骨架
+          ( cd sv && CXXFLAGS="-arch arm64 -mmacosx-version-min=${MIN_MACOS}" \
+                     LDFLAGS="-arch arm64 -mmacosx-version-min=${MIN_MACOS}" \
+            ./configure --disable-all-engines --enable-engine=agos --enable-release \
+              --disable-mad --disable-vorbis --disable-flac --disable-fluidsynth --disable-fluidlite \
+              --disable-mpeg2 --disable-theoradec --disable-faad --disable-libcurl --disable-a52 \
+              --disable-mikmod --disable-gif --disable-jpeg --disable-png --disable-freetype2 \
+              --disable-zlib --disable-tts --disable-discord --disable-sndio --disable-timidity \
+              --disable-sparkle --disable-retrowave --disable-readline --disable-libunity \
+              --with-sdl-prefix="$PWD/sdl-arm64" )
+          ( cd sv && make -j3 scummvm-static && make bundle )
+          APP=$(find sv -maxdepth 2 -name 'ScummVM.app' | head -1)
+          echo "APP=$APP" >> $GITHUB_ENV
+          # 換上 universal 主程式
+          cp scummvm-universal "$APP/Contents/MacOS/scummvm"
+          # [HARD] SDL2 dylib lipo → Frameworks + install_name_tool + codesign
+          mkdir -p "$APP/Contents/Frameworks"
+          lipo -create sdl-arm64/lib/libSDL2-2.0.0.dylib sdl-x86_64/lib/libSDL2-2.0.0.dylib \
+               -output "$APP/Contents/Frameworks/libSDL2-2.0.0.dylib"
+          OLD=$(otool -L "$APP/Contents/MacOS/scummvm" | grep -i libSDL2 | awk '{print $1}' | head -1)
+          install_name_tool -change "$OLD" "@executable_path/../Frameworks/libSDL2-2.0.0.dylib" "$APP/Contents/MacOS/scummvm"
+          codesign --force --sign - "$APP/Contents/Frameworks/libSDL2-2.0.0.dylib"
+          codesign --force --sign - "$APP/Contents/MacOS/scummvm"
+          # 驗證:雙弧 + 無殘留路徑
+          lipo -info "$APP/Contents/MacOS/scummvm"
+          lipo -info "$APP/Contents/Frameworks/libSDL2-2.0.0.dylib"
+          otool -L "$APP/Contents/MacOS/scummvm" | grep -qE "$RUNNER_TEMP|/Users/runner" && { echo "!! 殘留 runner 路徑"; exit 1; } || true
+
+      - name: Add CHT assets + 使用說明
+        run: |
+          set -e
+          # 繁中字型/譯表放在 .app 旁的資料夾, 玩家需複製進「自己的 Elvira 遊戲夾」(引擎從遊戲夾載入)。
+          mkdir -p 繁中字型
+          cp fonts/elvira1_zh14.dcjk fonts/elvira1_zh16.dcjk fonts/elvira1_zh24.dcjk \
+             translations/elvira1_zh.tab 繁中字型/
+          cat > 使用說明.txt <<'EOF'
+古堡禁地 (Elvira 1, 1990) 繁體中文版 — macOS (universal, Apple Silicon + Intel)
+安裝:
+1. 對 ScummVM.app 按右鍵 → 打開(首次繞過 Gatekeeper)。
+2. 把你合法擁有的 Elvira (Floppy/DOS) 全部檔案放進一個資料夾(以下稱「遊戲夾」)。
+3. [重要] 把本包「繁中字型/」內的 4 個檔(elvira1_zh14/16/24.dcjk、elvira1_zh.tab)
+   複製進你的「遊戲夾」(要和 gamepc/tables01 等原檔在同一夾, 引擎才載得到中文)。
+4. 想要 MT-32 原版配樂: 也把 MT32_CONTROL.ROM / MT32_PCM.ROM 放進遊戲夾。
+5. 開 ScummVM.app → Add Game → 指向遊戲夾 → 進遊戲設定 Graphics 建議 Scaler=Normal, Scale=2x
+   (繁中疊層為 640x400 設計;放大請用全螢幕)。
+熱鍵: F7 無敵, TAB 地圖; 存檔 Alt+數字, 讀檔 Ctrl+數字。
+EOF
+
+      - name: Package tar.gz + dmg
+        run: |
+          set -e
+          # 收成一個發佈夾(ScummVM.app + 繁中字型 + 使用說明)
+          rm -rf release && mkdir -p release
+          cp -R "$APP" release/
+          cp -R 繁中字型 release/
+          cp 使用說明.txt release/
+          # [HARD] tar.gz 繞 APFS
+          tar czf 古堡禁地-CHT-macos-universal.tar.gz -C release .
+          # dmg
+          hdiutil create -volname "古堡禁地 CHT" -srcfolder release -ov -format UDZO 古堡禁地-CHT-macos-universal.dmg
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: 古堡禁地-CHT-macos-universal
+          path: |
+            古堡禁地-CHT-macos-universal.tar.gz
+            古堡禁地-CHT-macos-universal.dmg

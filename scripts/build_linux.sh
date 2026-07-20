@@ -22,15 +22,18 @@ docker run --rm -v "$PROJ:/w" -w /w agos-build bash -c '
     cp build/scummvm-src/gui/themes/$f "$OUT/data/" 2>/dev/null || true
   done
   cp build/scummvm-src/dists/engine-data/fonts.dat build/scummvm-src/dists/engine-data/fonts-cjk.dat "$OUT/data/" 2>/dev/null || true
-  # 繁中字型+譯表(GPL 衍生, 可散佈)
-  cp fonts/elvira1_zh16.dcjk fonts/elvira1_zh24.dcjk translations/elvira1_zh.tab "$OUT/game/"
+  # 繁中字型+譯表(GPL 衍生, 可散佈)。14px=對白 16px=面板 24px=標題/地圖
+  cp fonts/elvira1_zh14.dcjk fonts/elvira1_zh16.dcjk fonts/elvira1_zh24.dcjk translations/elvira1_zh.tab "$OUT/game/"
   # 啟動器
   cat > "$OUT/play-elvira.sh" <<"EOF"
 #!/bin/bash
 HERE="$(cd "$(dirname "$0")" && pwd)"
 export LD_LIBRARY_PATH="$HERE/lib:$LD_LIBRARY_PATH"
+# [重要] 鎖 --scale-factor=2:繁中 overlay 疊層(面板/對白)座標為 640x400 設計, 需 2x 才對齊。
+# 想放大用 ScummVM 全螢幕(它縮放最終 640x400 影像、疊層仍對齊)。
 "$HERE/bin/scummvm" -p "$HERE/game" --themepath="$HERE/data" --extrapath="$HERE/game" \
-  --savepath="$HERE/saves" --music-driver=mt32 --auto-detect "$@"
+  --savepath="$HERE/saves" --music-driver=mt32 --scaler=normal --scale-factor=2 \
+  --no-aspect-ratio --auto-detect "$@"
 EOF
   chmod +x "$OUT/play-elvira.sh"
   cat > "$OUT/README.txt" <<"EOF"

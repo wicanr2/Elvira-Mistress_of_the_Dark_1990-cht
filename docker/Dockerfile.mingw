@@ -1,0 +1,20 @@
+# Windows 交叉編 image:mingw-w64 + SDL2/SDL2_net mingw dev(pinned 2.30.9)。
+FROM ubuntu:24.04
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      build-essential mingw-w64 mingw-w64-tools \
+      curl ca-certificates xz-utils file pkg-config zip nasm python3 \
+    && rm -rf /var/lib/apt/lists/*
+
+# SDL2 + SDL2_net mingw dev → 解到 mingw sysroot (x86_64-w64-mingw32)
+ARG SDL2_VER=2.30.9
+ARG SDLNET_VER=2.2.0
+RUN cd /tmp \
+ && curl -fsSL -o sdl2.tar.gz https://github.com/libsdl-org/SDL/releases/download/release-${SDL2_VER}/SDL2-devel-${SDL2_VER}-mingw.tar.gz \
+ && curl -fsSL -o sdlnet.tar.gz https://github.com/libsdl-org/SDL_net/releases/download/release-${SDLNET_VER}/SDL2_net-devel-${SDLNET_VER}-mingw.tar.gz \
+ && tar xf sdl2.tar.gz && tar xf sdlnet.tar.gz \
+ && cp -r SDL2-${SDL2_VER}/x86_64-w64-mingw32/* /usr/x86_64-w64-mingw32/ \
+ && cp -r SDL2_net-${SDLNET_VER}/x86_64-w64-mingw32/* /usr/x86_64-w64-mingw32/ \
+ && rm -rf /tmp/*
+# sdl2-config 供 ScummVM configure 找 SDL
+RUN ln -sf /usr/x86_64-w64-mingw32/bin/sdl2-config /usr/local/bin/x86_64-w64-mingw32-sdl2-config 2>/dev/null || true
