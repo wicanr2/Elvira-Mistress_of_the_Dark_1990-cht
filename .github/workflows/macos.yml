@@ -50,10 +50,6 @@ jobs:
               LDFLAGS="-arch $A -mmacosx-version-min=${MIN_MACOS}"
             $RUN make -j3 && $RUN make install
             cd ..
-            # 在 link 前就把 dylib 的 install_name 設成 @executable_path → 兩弧一致, ScummVM link 時
-            # 直接記錄此路徑, 免後續逐弧 install_name_tool -change(否則另一弧殘留 runner 路徑)。
-            install_name_tool -id "@executable_path/../Frameworks/libSDL2-2.0.0.dylib" \
-              "$GITHUB_WORKSPACE/sdl-$A/lib/libSDL2-2.0.0.dylib"
           done
           # 防呆:dylib >1MB(真 SDL2, 非 sdl2-compat shim)且不見 SDL3
           for A in arm64 x86_64; do
@@ -112,8 +108,15 @@ jobs:
           mkdir -p "$APP/Contents/Frameworks"
           lipo -create sdl-arm64/lib/libSDL2-2.0.0.dylib sdl-x86_64/lib/libSDL2-2.0.0.dylib \
                -output "$APP/Contents/Frameworks/libSDL2-2.0.0.dylib"
-          OLD=$(otool -L "$APP/Contents/MacOS/scummvm" | grep -i libSDL2 | awk '{print $1}' | head -1)
-          install_name_tool -change "$OLD" "@executable_path/../Frameworks/libSDL2-2.0.0.dylib" "$APP/Contents/MacOS/scummvm"
+          # universal 主程式的兩弧各自引用 sdl-arm64 / sdl-x86_64 路徑 → 兩個 old 路徑都要 -change
+          # (install_name_tool -change 只改各弧內符合的 old;lipo 後 arm64 弧記 sdl-arm64、x86_64 弧記 sdl-x86_64)。
+          NEW="@executable_path/../Frameworks/libSDL2-2.0.0.dylib"
+          for A in arm64 x86_64; do
+            install_name_tool -change "$GITHUB_WORKSPACE/sdl-$A/lib/libSDL2-2.0.0.dylib" "$NEW" "$APP/Contents/MacOS/scummvm" 2>/dev/null || true
+          done
+          # 保險:若還有其他 libSDL2 old 路徑(otool 顯示的第一個非 @ 路徑)也改
+          OLD=$(otool -L "$APP/Contents/MacOS/scummvm" | grep -i libSDL2 | awk '{print $1}' | grep -v '^@' | head -1 || true)
+          [ -n "$OLD" ] && install_name_tool -change "$OLD" "$NEW" "$APP/Contents/MacOS/scummvm" || true
           codesign --force --sign - "$APP/Contents/Frameworks/libSDL2-2.0.0.dylib"
           codesign --force --sign - "$APP/Contents/MacOS/scummvm"
           # 驗證:雙弧 + 無殘留路徑
