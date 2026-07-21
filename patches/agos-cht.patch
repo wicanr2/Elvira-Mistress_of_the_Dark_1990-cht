@@ -1,5 +1,5 @@
 diff --git a/engines/agos/agos.cpp b/engines/agos/agos.cpp
-index af27f131..48d1a21d 100644
+index af27f131..a9648f6e 100644
 --- a/engines/agos/agos.cpp
 +++ b/engines/agos/agos.cpp
 @@ -607,6 +607,20 @@ Common::Error AGOSEngine::init() {
@@ -67,7 +67,7 @@ index af27f131..48d1a21d 100644
  	}
  
  	setupGame();
-@@ -1061,6 +1087,22 @@ Common::Error AGOSEngine::go() {
+@@ -1061,6 +1087,26 @@ Common::Error AGOSEngine::go() {
  		loadMenuFile();
  	}
  
@@ -82,7 +82,11 @@ index af27f131..48d1a21d 100644
 +		bool tabOk = chtLoadTable(_cht, "elvira1_zh.tab");
 +		if (fontOk && tabOk) {
 +			_chtActive = true;
-+			_copyProtection = false;   // 繁中版嘗試 bypass 防拷 (Elvira1 引擎無檢查點, 見 RE 報告)
++			// 防禦性寫法(對 Elvira 1 實為 no-op): _copyProtection 的 bypass 邏輯在引擎內只接了
++			// Simon 1/2(script.cpp:853 id 2924/1322)與 Waxworks(script.cpp:431 id 71), Elvira 1
++			// 無任何引擎防拷檢查點, 遊戲資料亦無防拷提問。設 false 只是與 ScummVM 預設一致。
++			// 完整靜態調查見 docs/COPY_PROTECTION.md。
++			_copyProtection = false;
 +			debug(0, "CHT: 古堡禁地繁中模式 ON (font16 + table ready, hires=%d)", (int)_chtHires);
 +		}
 +	}

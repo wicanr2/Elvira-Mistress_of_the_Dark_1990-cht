@@ -169,6 +169,20 @@ build/scummvm-src/scummvm -p run_game --auto-detect --music-driver=mt32
 
 ---
 
+## 專案文件
+
+| 文件 | 內容 |
+|---|---|
+| [`docs/DEV_SETUP.md`](docs/DEV_SETUP.md) | 開發環境、改譯文重烘字型、改引擎重生 patch、headless 驗證、打包 |
+| [`docs/RESEARCH.md`](docs/RESEARCH.md) | 遊戲背景考據、六把鑰匙攻略與當年攻略來源 |
+| [`docs/MANUAL_INDEX.md`](docs/MANUAL_INDEX.md) | 軟體世界珍藏版 118 官方手冊要點索引 |
+| [`docs/RE_ELVIRA1_PATHS.md`](docs/RE_ELVIRA1_PATHS.md) | AGOS Elvira 1 文字/UI 路徑逆向、崩潰與 overlay hi-res 解法 |
+| [`docs/COPY_PROTECTION.md`](docs/COPY_PROTECTION.md) | **防拷靜態分析**：Elvira 1 無引擎防拷檢查點、`_copyProtection=false` 為 no-op、實測不擋玩家 |
+| [`docs/PROGRESS.md`](docs/PROGRESS.md) | 各階段進度紀錄 |
+| [`translations/glossary.md`](translations/glossary.md) | 150+ 條譯名對照（角色/地點/法術/料理/道具/怪物）|
+
+---
+
 ## 致謝與來源
 
 - 台灣官方中文：**軟體世界珍藏版 118《古堡禁地》**（1991，智冠／軟體世界，高雄）。文字編輯：謝明奇；美工編輯：郭寶寶。
