@@ -829,7 +829,7 @@ index 193986e3..7d03b875 100644
  	const byte *src;
  	byte color, *dst;
 diff --git a/engines/agos/charset.cpp b/engines/agos/charset.cpp
-index 05451427..24da996e 100644
+index 05451427..8a563312 100644
 --- a/engines/agos/charset.cpp
 +++ b/engines/agos/charset.cpp
 @@ -147,8 +147,9 @@ void AGOSEngine::justifyOutPut(byte chr) {
@@ -844,7 +844,7 @@ index 05451427..24da996e 100644
  		_lettersToPrintBuf[0] = chr;
  		_lettersToPrintBuf[1] = '\0';
  		doOutput(_lettersToPrintBuf, 1);
-@@ -221,6 +222,51 @@ void AGOSEngine::windowPutChar(WindowBlock *window, byte c, byte b) {
+@@ -221,6 +222,55 @@ void AGOSEngine::windowPutChar(WindowBlock *window, byte c, byte b) {
  	byte width = 6;
  	byte textColumnWidth = 8;
  
@@ -868,7 +868,11 @@ index 05451427..24da996e 100644
 +		if (_chtLead != 0) {
 +			byte lead = _chtLead;
 +			_chtLead = 0;
-+			if (window->textColumn + 2 > window->width) {   // 本行放不下 → 換 CJK 行
++			// overlay 疊層下對白走壓縮格(一個 CJK 字佔 16 overlay px = 原生的一半),
++			// 所以同樣寬度可容納兩倍字數 —— 換行門檻跟著加倍, 對白才會填滿整個對話框,
++			// 而不是只用左半邊、提早斷行。(chtTextLayerPut 會把欄位映射回視窗內)
++			uint wrapCols = _chtOverlayOn ? window->width * 2 : window->width;
++			if (window->textColumn + 2 > wrapCols) {        // 本行放不下 → 換 CJK 行
 +				window->textColumn = 0;
 +				window->textColumnOffset = 0;
 +				window->textLength = 0;
@@ -896,7 +900,7 @@ index 05451427..24da996e 100644
  	if (c == 12) {
  		clearWindow(window);
  	} else if (c == 13 || c == 10) {
-@@ -358,6 +404,10 @@ void AGOSEngine::windowNewLine(WindowBlock *window) {
+@@ -358,6 +408,10 @@ void AGOSEngine::windowNewLine(WindowBlock *window) {
  void AGOSEngine::windowScroll(WindowBlock *window) {
  	_videoLockOut |= 0x8000;
  
@@ -907,7 +911,7 @@ index 05451427..24da996e 100644
  	if (window->height != 1) {
  		Graphics::Surface *screen = getBackendSurface();
  
-@@ -388,6 +438,19 @@ void AGOSEngine::windowScroll(WindowBlock *window) {
+@@ -388,6 +442,19 @@ void AGOSEngine::windowScroll(WindowBlock *window) {
  			} while (--h1);
  		}
  
