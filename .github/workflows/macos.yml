@@ -146,21 +146,29 @@ jobs:
 
       - name: Package tar.gz + dmg
         run: |
-          set -e
+          set -euo pipefail
           # 收成一個發佈夾(ScummVM.app + 繁中字型 + 使用說明)
           rm -rf release && mkdir -p release
           cp -R "$APP" release/
           cp -R 繁中字型 release/
           cp 使用說明.txt release/
-          # [HARD] tar.gz 繞 APFS
+          # [HARD] tar.gz 繞 APFS,是主要交付
           tar czf 古堡禁地-CHT-macos-universal.tar.gz -C release .
-          # dmg
-          hdiutil create -volname "古堡禁地 CHT" -srcfolder release -ov -format UDZO 古堡禁地-CHT-macos-universal.dmg
+          # .dmg 用 hdiutil,偶發 "Resource busy" → 重試數次;仍失敗不中止(tar.gz 已足夠)
+          for try in 1 2 3 4 5; do
+            if hdiutil create -volname "古堡禁地 CHT" -srcfolder release -ov -format UDZO \
+                 古堡禁地-CHT-macos-universal.dmg; then
+              echo "✓ dmg 建立成功(第 $try 次)"; break
+            fi
+            echo "dmg 建立失敗(第 $try 次,Resource busy?),等 10s 重試…"; sleep 10
+          done
+          [ -f 古堡禁地-CHT-macos-universal.dmg ] || echo "!! dmg 最終未建成,只出 tar.gz(可接受)"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: 古堡禁地-CHT-macos-universal
+          if-no-files-found: warn
           path: |
             古堡禁地-CHT-macos-universal.tar.gz
             古堡禁地-CHT-macos-universal.dmg
