@@ -49,3 +49,6 @@ __pycache__/
 
 # 打包/推廣片產物目錄(整個排除)
 dist-all/
+
+# macOS CI artifact(含引擎 + 本機注入遊戲的完整版, 不入庫)
+dist-macos-artifact/
