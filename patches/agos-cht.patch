@@ -95,7 +95,7 @@ index af27f131..a9648f6e 100644
  
  	if (getGameType() != GType_PP && getGameType() != GType_FF) {
 diff --git a/engines/agos/agos.h b/engines/agos/agos.h
-index 6a8d2237..23718809 100644
+index 6a8d2237..58998dc0 100644
 --- a/engines/agos/agos.h
 +++ b/engines/agos/agos.h
 @@ -37,6 +37,7 @@
@@ -106,7 +106,7 @@ index 6a8d2237..23718809 100644
  #include "agos/detection.h"
  
  /**
-@@ -386,6 +387,35 @@ protected:
+@@ -386,6 +387,37 @@ protected:
  	bool _pause;
  	bool _speech;
  	bool _subtitles;
@@ -137,12 +137,14 @@ index 6a8d2237..23718809 100644
 +	void chtDrawMap();        // 地圖(TAB): BFS 房間圖畫進 overlay
 +	void chtTextLayerPut(WindowBlock *window, uint x, uint y, byte lead, byte trail);
 +	void chtTextLayerClear(WindowBlock *window);
++	void chtDrawMenuBig5(int gcx, int gcy, const char *s);
++	void chtClearMenuLayer();
 +	void chtTextLayerScroll(WindowBlock *window);
 +
  	bool _vgaVar9;
  	int16 _chanceModifier;
  	bool _restoreWindow6;
-@@ -958,6 +988,11 @@ protected:
+@@ -958,6 +990,11 @@ protected:
  	void renderStringAmiga(uint vgaSpriteId, uint color, uint width, uint height, const char *txt);
  	void renderString(uint vgaSpriteId, uint color, uint width, uint height, const char *txt);
  
@@ -155,7 +157,7 @@ index 6a8d2237..23718809 100644
  
  	byte *allocBlock(uint32 size);
 diff --git a/engines/agos/charset-fontdata.cpp b/engines/agos/charset-fontdata.cpp
-index 193986e3..2313c063 100644
+index 193986e3..7d03b875 100644
 --- a/engines/agos/charset-fontdata.cpp
 +++ b/engines/agos/charset-fontdata.cpp
 @@ -22,12 +22,14 @@
@@ -173,7 +175,7 @@ index 193986e3..2313c063 100644
  
  namespace AGOS {
  
-@@ -2914,6 +2916,583 @@ static const byte english_pnFont[] = {
+@@ -2914,6 +2916,652 @@ static const byte english_pnFont[] = {
  	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
  };
  
@@ -407,37 +409,51 @@ index 193986e3..2313c063 100644
 +		chtDrawMap();
 +	// ── 在 overlay 畫 16px 動詞面板中文 ── (cy = overlay 640x400 座標中心; 英文右對齊至右緣)
 +	struct VLabel { int16 cy; byte b[4]; };  // 右欄; 左欄另列
++	// [對齊真值] cy = 該動詞 hitarea 判定框的中心(overlay 座標 = 遊戲座標 x2)。
++	// 判定框由遊戲腳本定義、與面板美術字一一對應, 實測(boxController dump)為:
++	//   右欄 id 0x78..0x81 = (277, 9/17/25/33/41/49/57/65/73/81, 37x7)  → OPEN..THROW
++	//        id 0x82/0x83/0x84 = (277, 99/107/115, 37x7)               → PAUSE/SAVE/RESTORE
++	//   左欄 id 0x73/0x74/0x75 = (6, 12/24/36, 37x7)                   → ROOM/INV/WEAPONS
++	// 中文標籤必須畫在框中心(cy = 2*(boxY+3.5) = 2*boxY+7), 否則「看得到的字」與
++	// 「點得到的框」錯開一格 → 點「開啟」會觸發下一格的 CLOSE。
 +	static const VLabel kRight[] = {
-+		{ 31, {0xb6,0x7d,0xb1,0xd2}},  // 開啟 OPEN
-+		{ 49, {0xc3,0xf6,0xb3,0xac}},  // 關閉 CLOSE
-+		{ 67, {0xa4,0x57,0xc2,0xea}},  // 上鎖 LOCK
-+		{ 85, {0xb8,0xd1,0xc2,0xea}},  // 解鎖 UNLOCK
-+		{103, {0xac,0x64,0xac,0xdd}},  // 查看 LOOK IN
-+		{121, {0xc0,0xcb,0xb5,0xf8}},  // 檢視 EXAMINE
-+		{139, {0xbd,0xd5,0xb0,0x74}},  // 調配 MIX
-+		{157, {0xad,0xb9,0xa5,0xce}},  // 食用 CONSUME
-+		{175, {0xa8,0xcf,0xa5,0xce}},  // 使用 USE
-+		{193, {0xa7,0xeb,0xc2,0x59}},  // 投擲 THROW
-+		{230, {0xbc,0xc8,0xb0,0xb1}},  // 暫停 PAUSE
-+		{248, {0xa6,0x73,0xc0,0xc9}},  // 存檔 SAVE
-+		{266, {0xc5,0xaa,0xc0,0xc9}},  // 讀檔 RESTORE
++		{ 25, {0xb6,0x7d,0xb1,0xd2}},  // 開啟 OPEN     box 0x78 y9
++		{ 41, {0xc3,0xf6,0xb3,0xac}},  // 關閉 CLOSE    box 0x79 y17
++		{ 57, {0xa4,0x57,0xc2,0xea}},  // 上鎖 LOCK     box 0x7A y25
++		{ 73, {0xb8,0xd1,0xc2,0xea}},  // 解鎖 UNLOCK   box 0x7B y33
++		{ 89, {0xac,0x64,0xac,0xdd}},  // 查看 LOOK IN  box 0x7C y41
++		{105, {0xc0,0xcb,0xb5,0xf8}},  // 檢視 EXAMINE  box 0x7D y49
++		{121, {0xbd,0xd5,0xb0,0x74}},  // 調配 MIX      box 0x7E y57
++		{137, {0xad,0xb9,0xa5,0xce}},  // 食用 CONSUME  box 0x7F y65
++		{153, {0xa8,0xcf,0xa5,0xce}},  // 使用 USE      box 0x80 y73
++		{169, {0xa7,0xeb,0xc2,0x59}},  // 投擲 THROW    box 0x81 y81
++		{205, {0xbc,0xc8,0xb0,0xb1}},  // 暫停 PAUSE    box 0x82 y99
++		{221, {0xa6,0x73,0xc0,0xc9}},  // 存檔 SAVE     box 0x83 y107
++		{237, {0xc5,0xaa,0xc0,0xc9}},  // 讀檔 RESTORE  box 0x84 y115
 +	};
 +	static const VLabel kLeft[] = {
-+		{ 45, {0xa9,0xd0,0xb6,0xa1}},   // 房間 ROOM
-+		{ 67, {0xaa,0xab,0xab,0x7e}},   // 物品 INV
-+		{ 88, {0xaa,0x5a,0xbe,0xb9}},   // 武器 WEAPONS
++		{ 31, {0xa9,0xd0,0xb6,0xa1}},   // 房間 ROOM     box 0x73 y12
++		{ 55, {0xaa,0xab,0xab,0x7e}},   // 物品 INV      box 0x74 y24
++		{ 79, {0xaa,0x5a,0xbe,0xb9}},   // 武器 WEAPONS  box 0x75 y36
 +	};
-+	const int fw = _cht.fontW16, fh = _cht.fontH16, bpr = _cht.fontBpr16;
++	// 面板列距只有 16px(遊戲 8px), 用 14px 字留 2px 間隙, 不會與上下列糊在一起。
++	const bool small = (_cht.font14 != nullptr);
++	const int fw = small ? _cht.fontW14 : _cht.fontW16;
++	const int fh = small ? _cht.fontH14 : _cht.fontH16;
++	const int bpr = small ? _cht.fontBpr14 : _cht.fontBpr16;
 +	uint32 cWhite = fmt.RGBToColor(235, 235, 210);
 +	uint32 cBlack = fmt.RGBToColor(0, 0, 0);
-+	// 整塊黑底(涵蓋整個文字區, 保證升採後的英文美術字全被蓋掉, 個別 Y 稍偏也不露)
-+	// 右欄文字區: x560-640, y22-282; 左欄 ROOM/INV/WEAPONS: x6-90, y36-104。
-+	for (int yy = 22; yy < 282; yy++)
++	// 整塊黑底(涵蓋整個文字區, 保證升採後的英文美術字全被蓋掉, 個別 Y 稍偏也不露)。
++	// 上下界貼齊「第一個/最後一個判定框」± 一點餘裕, 不可再往下吃 —— 否則會蓋掉
++	// 狀態列右端的 EXP 數值(overlay y≈254-276)。
++	// 右欄 OPEN..RESTORE: 判定框 y9..121(遊戲) → overlay 18..244, 取 16..246。
++	// 左欄 ROOM/INV/WEAPONS: 判定框 y12..42 → overlay 24..84, 取 22..90。
++	for (int yy = 16; yy < 246; yy++)
 +		for (int xx = 554; xx < 640; xx++) {
 +			if (bpp == 2) ((uint16 *)_chtOvlBuf)[yy * ow + xx] = (uint16)cBlack;
 +			else ((uint32 *)_chtOvlBuf)[yy * ow + xx] = cBlack;
 +		}
-+	for (int yy = 28; yy < 102; yy++)
++	for (int yy = 22; yy < 90; yy++)
 +		for (int xx = 6; xx < 90; xx++) {
 +			if (bpp == 2) ((uint16 *)_chtOvlBuf)[yy * ow + xx] = (uint16)cBlack;
 +			else ((uint32 *)_chtOvlBuf)[yy * ow + xx] = cBlack;
@@ -446,11 +462,14 @@ index 193986e3..2313c063 100644
 +	for (int li = 0; li < nAll; li++) {
 +		bool left = (li >= (int)ARRAYSIZE(kRight));
 +		const VLabel &L = left ? kLeft[li - (int)ARRAYSIZE(kRight)] : kRight[li];
-+		int x0 = left ? 30 : 592;      // 左欄 x30 起; 右欄 x592(2 字 32px → 592-624, 置中於 560-640)
++		// x 也對齊判定框中心: 右欄框 x277..313(overlay 554..627, 中心 591);
++		// 左欄框 x6..42(overlay 12..85, 中心 49)。2 字寬 = 2*fw。
++		int x0 = (left ? 49 : 591) - fw;
 +		int y0 = L.cy - fh / 2;
 +		// 畫 2 個 Big5 字(pass0 描邊 pass1 本體)
 +		for (int ci = 0; ci < 2; ci++) {
-+			const byte *g = _cht.glyph16(L.b[ci * 2], L.b[ci * 2 + 1]);
++			const byte *g = small ? _cht.glyph14(L.b[ci * 2], L.b[ci * 2 + 1])
++			                      : _cht.glyph16(L.b[ci * 2], L.b[ci * 2 + 1]);
 +			if (!g)
 +				continue;
 +			int cx = x0 + ci * fw;
@@ -662,6 +681,58 @@ index 193986e3..2313c063 100644
 +// 重映射到壓縮格; windowScroll 每 CJK 行呼叫 2 次, 故每次捲動 kChtDlgLineH/2。
 +static const int kChtDlgCharW = 16;
 +static const int kChtDlgLineH = 18;
++
++// 非上游: 把一串 Big5 直接畫在 overlay 文字層的「原生位置」(overlay = 遊戲座標 x2),
++// 並以 cx 為水平中心。對白走上面的壓縮格(字小、貼合對話框), 但綁 hitarea 的選單
++// (暫停/結束、是/否、覆蓋確認)必須貼齊遊戲腳本定義的判定框 —— 兩者格線不同, 故選單
++// 走這條直繪路徑, 不經 windowPutChar。gcx/gcy = 遊戲座標(320x200)的中心點。
++void AGOSEngine::chtDrawMenuBig5(int gcx, int gcy, const char *s) {
++	if (!_chtTextLayer || !_chtTextCov || !_cht.font16)
++		return;
++	int n = 0;
++	for (const char *p = s; p[0] && p[1]; p += 2)
++		n++;
++	const int fw = _cht.fontW16, fh = _cht.fontH16, bpr = _cht.fontBpr16;
++	const int ow = _chtOvlW, oh = _chtOvlH, bpp = _chtOvlBpp;
++	Graphics::PixelFormat fmt = _system->getOverlayFormat();
++	uint32 col = fmt.RGBToColor(30, 25, 20);        // 捲軸是米黃底 → 深色字
++	uint32 olc = fmt.RGBToColor(235, 230, 210);     // 淺色描邊, 花紋上也讀得到
++	int x0 = gcx * 2 - n * fw / 2, y0 = gcy * 2 - fh / 2;
++	for (int ci = 0; ci < n; ci++) {
++		const byte *g = _cht.glyph16((byte)s[ci * 2], (byte)s[ci * 2 + 1]);
++		if (!g)
++			continue;
++		int bx = x0 + ci * fw;
++		for (int pass = 0; pass < 2; pass++) {
++			uint32 c = (pass == 0) ? olc : col;
++			for (int row = 0; row < fh; row++) {
++				const byte *gr = g + row * bpr;
++				for (int cc = 0; cc < fw; cc++) {
++					if (!(gr[cc >> 3] & (0x80 >> (cc & 7))))
++						continue;
++					for (int dy = (pass == 0 ? -1 : 0); dy <= (pass == 0 ? 1 : 0); dy++)
++						for (int dx = (pass == 0 ? -1 : 0); dx <= (pass == 0 ? 1 : 0); dx++) {
++							int xx = bx + cc + dx, yy = y0 + row + dy;
++							if (xx < 0 || xx >= ow || yy < 0 || yy >= oh)
++								continue;
++							uint idx = yy * ow + xx;
++							if (bpp == 2) ((uint16 *)_chtTextLayer)[idx] = (uint16)c;
++							else ((uint32 *)_chtTextLayer)[idx] = c;
++							_chtTextCov[idx] = 1;
++						}
++				}
++			}
++		}
++	}
++}
++
++// 非上游: 清掉整層 overlay 文字層(模態選單開/關時用, 避免殘字)。
++void AGOSEngine::chtClearMenuLayer() {
++	if (!_chtTextLayer || !_chtTextCov)
++		return;
++	memset(_chtTextLayer, 0, (size_t)_chtOvlW * _chtOvlH * _chtOvlBpp);
++	memset(_chtTextCov, 0, (size_t)_chtOvlW * _chtOvlH);
++}
 +
 +// 文字層寫入: 對白/敘述 CJK 改畫進 overlay 持久文字層(14px 小字, 壓縮格), 小巧清晰貼合對話框。
 +// x,y = 原生 320x200 像素座標(x=window->x*8+textColumn*8, y=window->y+textRow*8)。
@@ -1145,7 +1216,7 @@ index 944797f9..9145fac8 100644
  		scrollScreen();
  	}
 diff --git a/engines/agos/event.cpp b/engines/agos/event.cpp
-index db3ba144..db86613b 100644
+index db3ba144..e8bd8dbe 100644
 --- a/engines/agos/event.cpp
 +++ b/engines/agos/event.cpp
 @@ -430,6 +430,10 @@ void AGOSEngine::monsterDamageEvent(VgaTimerEntry * vte, uint dx) {
@@ -1183,6 +1254,20 @@ index db3ba144..db86613b 100644
  				if (event.kbd.keycode >= Common::KEYCODE_0 && event.kbd.keycode <= Common::KEYCODE_9
  					&& (event.kbd.hasFlags(Common::KBD_ALT) ||
  						event.kbd.hasFlags(Common::KBD_CTRL))) {
+@@ -557,6 +578,13 @@ void AGOSEngine::delay(uint amount) {
+ 
+ 		_system->getAudioCDManager()->update();
+ 
++		// 非上游: 模態選單(暫停/存讀檔/是非確認)期間 haltAnimation 會停掉 displayScreen,
++		// 而 overlay 疊層蓋在遊戲畫面之上 —— 不重新合成的話玩家只會看到上一幀, 選單等於
++		// 隱形。故在 delay() 每次 updateScreen 前補一次合成(動畫停止時才需要, 平時
++		// displayScreen 已合成過)。
++		if (_chtOverlayOn && (_videoLockOut & 0x10))
++			chtOverlayCompose();
++
+ 		_system->updateScreen();
+ 
+ 		if (amount == 0)
 diff --git a/engines/agos/gfx.cpp b/engines/agos/gfx.cpp
 index 06dfaef6..e11a175c 100644
 --- a/engines/agos/gfx.cpp
@@ -1233,6 +1318,23 @@ index 06dfaef6..e11a175c 100644
  				Common::Rect dirtyRect(0, 133, _screenWidth, _screenHeight);
  				updateBackendSurface(&dirtyRect);
  			}
+diff --git a/engines/agos/metaengine.cpp b/engines/agos/metaengine.cpp
+index be2d5090..6f1f34af 100644
+--- a/engines/agos/metaengine.cpp
++++ b/engines/agos/metaengine.cpp
+@@ -245,6 +245,12 @@ Common::KeymapArray AgosMetaEngine::initKeymaps(const char *target) const {
+ 	act->setCustomEngineActionEvent(kActionExitCutscene);
+ 	act->addDefaultInputMapping("ESCAPE");
+ 	act->addDefaultInputMapping("JOY_Y");
++	// 非上游: Elvira/Waxworks 原版手冊記載按 Enter 可跳過片頭, ScummVM 只綁 ESCAPE。
++	// 補上 RETURN/KP_ENTER 以符合手冊與玩家預期(cutscene 期間 Enter 無其他用途)。
++	if (gameId == "elvira1" || gameId == "elvira2" || gameId == "waxworks") {
++		act->addDefaultInputMapping("RETURN");
++		act->addDefaultInputMapping("KP_ENTER");
++	}
+ 	if (gameId == "simon2" || gameId == "feeble")
+ 		act->addDefaultInputMapping("F5");
+ 	engineKeyMap->addAction(act);
 diff --git a/engines/agos/module.mk b/engines/agos/module.mk
 index 37432e1e..be4c4ce4 100644
 --- a/engines/agos/module.mk
@@ -1269,10 +1371,83 @@ index ab214b27..56380a66 100644
  
  // Elvira 2 specific
 diff --git a/engines/agos/saveload.cpp b/engines/agos/saveload.cpp
-index b2095d1e..98a92095 100644
+index b2095d1e..73e55fea 100644
 --- a/engines/agos/saveload.cpp
 +++ b/engines/agos/saveload.cpp
-@@ -1018,6 +1018,17 @@ void AGOSEngine::fileError(WindowBlock *window, bool saveError) {
+@@ -258,17 +258,27 @@ bool AGOSEngine::confirmOverWrite(WindowBlock *window) {
+ 	window->textColumnOffset = 0;
+ 	window->textLength = 0;		// Difference
+ 
+-	for (; *message1; message1++)
+-		windowPutChar(window, *message1);
+-	for (; *message2; message2++)
+-		windowPutChar(window, *message2);
+-	for (; *message3; message3++)
+-		windowPutChar(window, *message3);
+-
+-	if (confirmYesOrNo(120, 78) == 0x7FFF)
+-		return true;
+-
+-	return false;
++	// 非上游: 繁中直接畫在 confirmYesOrNo(120,78) 的判定框上
++	// (是=(120,78,30x12) 否=(180,78,24x12)); 理由同 oe1_pauseGame。
++	if (_chtActive && _chtSubLang == 1 && _chtOverlayOn) {
++		chtClearMenuLayer();
++		chtDrawMenuBig5(160, 46, "\xc0\xc9\xae\xd7\xa4\x77\xa6\x73\xa6\x62");   // 檔案已存在
++		chtDrawMenuBig5(160, 62, "\xad\x6e\xc2\xd0\xbb\x5c\xb6\xdc\xa1\x48");   // 要覆蓋嗎？
++		chtDrawMenuBig5(135, 84, "\xac\x4f");   // 是
++		chtDrawMenuBig5(192, 84, "\xa7\x5f");   // 否
++	} else {
++		for (; *message1; message1++)
++			windowPutChar(window, *message1);
++		for (; *message2; message2++)
++			windowPutChar(window, *message2);
++		for (; *message3; message3++)
++			windowPutChar(window, *message3);
++	}
++
++	bool yes = (confirmYesOrNo(120, 78) == 0x7FFF);
++	if (_chtOverlayOn)
++		chtClearMenuLayer();
++	return yes;
+ }
+ 
+ int16 AGOSEngine::matchSaveGame(const char *name, uint16 max) {
+@@ -326,8 +336,21 @@ restart:
+ 	}
+ 
+ 	clearHiResTextLayer();
+-	for (; *message1; message1++)
+-		windowPutChar(window, *message1);
++	// 非上游: 繁中提示直接畫在疊層(理由同 oe1_pauseGame: CHT 的 \r 是 CJK 行高,
++	// 英文原訊息的換行數會把字推出捲軸)。之後把輸入游標放回英文版的位置(第 3 列第 3 欄),
++	// 讓玩家輸入的檔名(ASCII)照原路徑畫。
++	if (_chtActive && _chtSubLang == 1 && _chtOverlayOn) {
++		chtClearMenuLayer();
++		chtDrawMenuBig5(160, 44, "\xb4\xa1\xa4\x4a\xa6\x73\xc0\xc9\xba\xcf\xa4\xf9");   // 插入存檔磁片
++		chtDrawMenuBig5(160, 60, "\xa8\xc3\xbf\xe9\xa4\x4a\xc0\xc9\xa6\x57\xa1\x47");   // 並輸入檔名：
++		window->textRow = 3;
++		window->textColumn = 3;
++		window->textColumnOffset = 0;
++		window->textLength = 0;
++	} else {
++		for (; *message1; message1++)
++			windowPutChar(window, *message1);
++	}
+ 
+ 	memset(_saveBuf, 0, 10);
+ 	name = _saveBuf;
+@@ -388,6 +411,9 @@ restart:
+ 	}
+ 
+ 	clearHiResTextLayer();
++	// 非上游: 存讀檔選單關閉後清乾淨疊層文字, 避免提示殘留在遊戲畫面上。
++	if (_chtOverlayOn)
++		chtClearMenuLayer();
+ 	restartAnimation();
+ 	_gameStoppedClock = getTime() - saveTime + _gameStoppedClock;
+ }
+@@ -1018,6 +1044,17 @@ void AGOSEngine::fileError(WindowBlock *window, bool saveError) {
  		}
  	}
  
@@ -1290,8 +1465,22 @@ index b2095d1e..98a92095 100644
  	if (getGameType() == GType_ELVIRA1) {
  		printScroll();
  		window->textColumn = 0;
+@@ -1152,6 +1189,13 @@ bool AGOSEngine::loadGame(const Common::String &filename, bool restartMode) {
+ 
+ 	_videoLockOut &= ~0x100;
+ 
++	// 非上游: 載入後清掉 overlay 持久文字層, 否則存讀檔選單的字(如「讀取遊戲」)
++	// 會殘留在畫面上 —— 文字層是持久的, 不會被遊戲畫面重繪蓋掉。
++	if (_chtOverlayOn && _chtTextLayer && _chtTextCov) {
++		memset(_chtTextLayer, 0, (size_t)_chtOvlW * _chtOvlH * _chtOvlBpp);
++		memset(_chtTextCov, 0, (size_t)_chtOvlW * _chtOvlH);
++	}
++
+ 	return true;
+ }
+ 
 diff --git a/engines/agos/script_e1.cpp b/engines/agos/script_e1.cpp
-index 629cede8..c9fc3593 100644
+index 629cede8..bc0b7988 100644
 --- a/engines/agos/script_e1.cpp
 +++ b/engines/agos/script_e1.cpp
 @@ -529,7 +529,7 @@ void AGOSEngine_Elvira1::oe1_moveDirn() {
@@ -1326,7 +1515,67 @@ index 629cede8..c9fc3593 100644
  	}
  }
  
-@@ -1041,20 +1042,22 @@ void AGOSEngine::lobjFunc(Item *i, const char *f) {
+@@ -936,10 +937,21 @@ restart:
+ 		break;
+ 	}
+ 
+-	for (; *message1; message1++)
+-		windowPutChar(window, *message1);
+-	for (; *message2; message2++)
+-		windowPutChar(window, *message2);
++	// 非上游: 繁中模式不走 windowPutChar —— (1) CHT 分支的 \r 是 CJK 行高(+2 列),
++	// 英文原訊息的 3 個 \r 會把標題捲出視窗; (2) 這兩個選項綁固定判定框
++	// (continueOrQuit: 繼續=(96,62,60x12) 結束=(180,62,36x12)), 文字必須畫在框上,
++	// 而對白文字層是壓縮格。故直接畫在框中心。
++	if (_chtActive && _chtSubLang == 1 && _chtOverlayOn) {
++		chtClearMenuLayer();
++		chtDrawMenuBig5(160, 42, "\xb9\x43\xc0\xb8\xbc\xc8\xb0\xb1");   // 遊戲暫停
++		chtDrawMenuBig5(126, 68, "\xc4\x7e\xc4\xf2");                   // 繼續
++		chtDrawMenuBig5(198, 68, "\xb5\xb2\xa7\xf4");                   // 結束
++	} else {
++		for (; *message1; message1++)
++			windowPutChar(window, *message1);
++		for (; *message2; message2++)
++			windowPutChar(window, *message2);
++	}
+ 
+ 	if (continueOrQuit() == 0x7FFE) {
+ 		printScroll();
+@@ -971,10 +983,19 @@ restart:
+ 			break;
+ 		}
+ 
+-		for (; *message1; message1++)
+-			windowPutChar(window, *message1);
+-		for (; *message2; message2++)
+-			windowPutChar(window, *message2);
++		// 非上游: 同上, 是/否綁 confirmYesOrNo(120,62) 的判定框
++		// (是=(120,62,30x12) 否=(180,62,24x12)), 直接畫在框中心。
++		if (_chtActive && _chtSubLang == 1 && _chtOverlayOn) {
++			chtClearMenuLayer();
++			chtDrawMenuBig5(160, 42, "\xbd\x54\xa9\x77\xad\x6e\xc2\xf7\xb6\x7d\xb6\xdc\xa1\x48");  // 確定要離開嗎？
++			chtDrawMenuBig5(135, 68, "\xac\x4f");   // 是
++			chtDrawMenuBig5(192, 68, "\xa7\x5f");   // 否
++		} else {
++			for (; *message1; message1++)
++				windowPutChar(window, *message1);
++			for (; *message2; message2++)
++				windowPutChar(window, *message2);
++		}
+ 
+ 		if (confirmYesOrNo(120, 62) == 0x7FFF) {
+ 			quitGame();
+@@ -986,6 +1007,9 @@ restart:
+ 	}
+ 
+ 	clearHiResTextLayer();
++	// 非上游: 選單關掉後清乾淨疊層文字, 否則「遊戲暫停/繼續/結束」會殘留在遊戲畫面上。
++	if (_chtOverlayOn)
++		chtClearMenuLayer();
+ 	restartAnimation();
+ 	_gameStoppedClock = getTime() - pauseTime + _gameStoppedClock;
+ }
+@@ -1041,20 +1065,22 @@ void AGOSEngine::lobjFunc(Item *i, const char *f) {
  				showMessageFormat("%s", f);
  			n = 1;
  		} else {

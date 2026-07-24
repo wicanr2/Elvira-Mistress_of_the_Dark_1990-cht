@@ -32,17 +32,25 @@ export LD_LIBRARY_PATH="$HERE/lib:$LD_LIBRARY_PATH"
 # [重要] 鎖 --scale-factor=2:繁中 overlay 疊層(面板/對白)座標為 640x400 設計, 需 2x 才對齊。
 # 想放大用 ScummVM 全螢幕(它縮放最終 640x400 影像、疊層仍對齊)。
 "$HERE/bin/scummvm" -p "$HERE/game" --themepath="$HERE/data" --extrapath="$HERE/game" \
-  --savepath="$HERE/saves" --music-driver=mt32 --scaler=normal --scale-factor=2 \
+  --savepath="$HERE/saves" --music-driver="${ELVIRA_MUSIC:-adlib}" --scaler=normal --scale-factor=2 \
   --no-aspect-ratio --auto-detect "$@"
 EOF
   chmod +x "$OUT/play-elvira.sh"
+  # MT-32 版啟動器(需自備 ROM)。沒有 ROM 時 ScummVM 會跳對話框要玩家按 OK, 故公開版預設 AdLib。
+  cat > "$OUT/play-elvira-mt32.sh" <<"EOF"
+#!/bin/bash
+HERE="$(cd "$(dirname "$0")" && pwd)"
+ELVIRA_MUSIC=mt32 exec "$HERE/play-elvira.sh" "$@"
+EOF
+  chmod +x "$OUT/play-elvira-mt32.sh"
   cat > "$OUT/README.txt" <<"EOF"
 古堡禁地 (Elvira - Mistress of the Dark, 1990) 繁體中文版
 ========================================================
 1. 把你合法擁有的 Elvira(Floppy/DOS) 全部檔案(gamepc、tables01…、start、*.vga 等)
    複製進 game/ 資料夾。
-2. 執行 ./play-elvira.sh 即可遊玩。
-3. 想要原版 MT-32 配樂: 把 MT32_CONTROL.ROM / MT32_PCM.ROM 也放進 game/。
+2. 執行 ./play-elvira.sh 即可遊玩(AdLib/OPL 配樂)。
+3. 想要原版 MT-32 配樂: 把 MT32_CONTROL.ROM / MT32_PCM.ROM 放進 game/,
+   改用 ./play-elvira-mt32.sh 啟動。
 畫面偏小可在 ScummVM 設定調整縮放(Graphics → Scaler)。
 EOF
   ( cd /tmp && tar czf /w/dist-all/古堡禁地-CHT-linux-x86_64.tar.gz "古堡禁地-CHT-linux-x86_64" )
