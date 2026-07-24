@@ -117,11 +117,23 @@ jobs:
           # 保險:若還有其他 libSDL2 old 路徑(otool 顯示的第一個非 @ 路徑)也改
           OLD=$(otool -L "$APP/Contents/MacOS/scummvm" | grep -i libSDL2 | awk '{print $1}' | grep -v '^@' | head -1 || true)
           [ -n "$OLD" ] && install_name_tool -change "$OLD" "$NEW" "$APP/Contents/MacOS/scummvm" || true
+          # [HARD] dylib 自己的 LC_ID_DYLIB 也要改 —— lipo 後兩弧各記 sdl-arm64/sdl-x86_64 的
+          # runner 路徑。主程式走 @executable_path 不看 ID(功能不受影響), 但 HARD 規則要求
+          # 產物無 runner 殘留, 且未來若 re-link 會用到 ID。放連結後、codesign 前改(連結前改
+          # 會破壞 configure 的 SDL2 runtime 測試)。
+          install_name_tool -id "$NEW" "$APP/Contents/Frameworks/libSDL2-2.0.0.dylib"
           codesign --force --sign - "$APP/Contents/Frameworks/libSDL2-2.0.0.dylib"
           codesign --force --sign - "$APP/Contents/MacOS/scummvm"
-          # 驗證:雙弧 + 無殘留路徑
+          # 驗證:雙弧 + 無殘留路徑(dylib ID + 主程式 load 皆不得見 /Users/runner)
           lipo -info "$APP/Contents/MacOS/scummvm"
           lipo -info "$APP/Contents/Frameworks/libSDL2-2.0.0.dylib"
+          if otool -D "$APP/Contents/Frameworks/libSDL2-2.0.0.dylib" | grep -q '/Users/runner'; then
+            echo "!! FATAL: SDL2 dylib LC_ID_DYLIB 仍含 runner 路徑"; exit 1
+          fi
+          if otool -L "$APP/Contents/MacOS/scummvm" | grep -i libSDL2 | grep -q '/Users/runner'; then
+            echo "!! FATAL: 主程式 SDL2 load 仍含 runner 路徑"; exit 1
+          fi
+          echo "✓ 無 runner 路徑殘留"
           if otool -L "$APP/Contents/MacOS/scummvm" | grep -q "/Users/runner"; then
             echo "!! 殘留 runner 路徑:"; otool -L "$APP/Contents/MacOS/scummvm" | grep "/Users/runner"; exit 1
           fi
