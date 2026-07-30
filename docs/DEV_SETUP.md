@@ -51,6 +51,21 @@ bash scripts/capture.sh 0 18 shot     # [HARD] Xvfb x16 + SDL dummy + --scaler 2
 # 截圖在 screenshots/,用影像檢視
 ```
 
+**疊層座標回歸測試（改動 compositor 後必跑）**
+```bash
+# 各倍率跑一輪截圖(x2 是基準;x4 = macOS retina 回報物理像素的等價條件)
+scripts/qa_overlay_scale.sh x2 2 640 400
+scripts/qa_overlay_scale.sh x3 3 960 600
+scripts/qa_overlay_scale.sh x4 4 1280 800
+scripts/qa_overlay_check.sh x2 x3 x4          # 統一縮回 640x400 比對 + 中文區 ROI 統計
+
+# 對白文字層 / 地圖(TAB) / 模態選單 三條路徑
+scripts/qa_overlay_feature.sh f4 4 1280 800
+```
+判定看兩個訊號：與 x2 基準的 RMSE（<0.10）、以及中文區 ROI 的亮像素佔比（三個倍率應相同）。
+RMSE 容易被畫面內容主導，ROI 才對佈局敏感——錯位時亮佔比會掉到三分之一。
+詳情與踩雷見 [`BUGFIX_NOTES.md`](BUGFIX_NOTES.md) 第六節。
+
 ## 引擎架構要點
 
 - **文字注入**：`string.cpp getStringPtrByID` 依 stringId 查 Big5 譯表（A/B/C 類文字共用 chokepoint）。CHTMISS oracle：`-d1` 時 log「請求了但譯表沒有」的英文 id，驗收應歸零。

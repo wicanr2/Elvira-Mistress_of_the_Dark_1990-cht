@@ -95,7 +95,7 @@ index af27f131..a9648f6e 100644
  
  	if (getGameType() != GType_PP && getGameType() != GType_FF) {
 diff --git a/engines/agos/agos.h b/engines/agos/agos.h
-index 6a8d2237..58998dc0 100644
+index 6a8d2237..bb141d62 100644
 --- a/engines/agos/agos.h
 +++ b/engines/agos/agos.h
 @@ -37,6 +37,7 @@
@@ -106,7 +106,7 @@ index 6a8d2237..58998dc0 100644
  #include "agos/detection.h"
  
  /**
-@@ -386,6 +387,37 @@ protected:
+@@ -386,6 +387,49 @@ protected:
  	bool _pause;
  	bool _speech;
  	bool _subtitles;
@@ -133,6 +133,18 @@ index 6a8d2237..58998dc0 100644
 +	byte *_chtTextLayer = nullptr;   // 編碼 RGB, ow*oh*bpp
 +	byte *_chtTextCov = nullptr;     // 遮罩 ow*oh, 1=有字
 +	int _chtOvlW = 0, _chtOvlH = 0, _chtOvlBpp = 0;
++	// 非上游: overlay 座標映射(玩家 issue1 — macOS retina 高 DPI)。
++	// 疊層的所有座標常數都以「基準空間 640x400」書寫(= 遊戲座標 x2, 與 hitarea 對齊的真值),
++	// 但實際 overlay 尺寸會被 retina 物理像素 / --scale-factor / aspect ratio 校正改變
++	// (實測 macOS retina 回報 1280x800、aspect 校正回報 640x480)。下面兩個函式把基準座標
++	// 換算成實際 overlay 座標; overlay 剛好 640x400 時是恆等映射(零 regression)。
++	static const int kChtBaseW = 640, kChtBaseH = 400;
++	int chtRX(int bx) const { return bx * _chtOvlW / kChtBaseW; }
++	int chtRY(int by) const { return by * _chtOvlH / kChtBaseH; }
++	// 以基準座標填矩形 / 畫 CJK 字模(字模隨倍率等比放大, 高 DPI 下視覺大小維持不變)。
++	void chtOvlFill(byte *dst, byte *cov, int bx, int by, int bw, int bh, uint32 col);
++	void chtOvlBlitGlyph(byte *dst, byte *cov, const byte *g, int fw, int fh, int bpr, int bx, int by, uint32 col);
++	void chtOvlDrawGlyph(byte *dst, byte *cov, const byte *g, int fw, int fh, int bpr, int bx, int by, uint32 col, uint32 olCol, bool outline);
 +	void chtOverlayCompose();
 +	void chtDrawMap();        // 地圖(TAB): BFS 房間圖畫進 overlay
 +	void chtTextLayerPut(WindowBlock *window, uint x, uint y, byte lead, byte trail);
@@ -144,7 +156,7 @@ index 6a8d2237..58998dc0 100644
  	bool _vgaVar9;
  	int16 _chanceModifier;
  	bool _restoreWindow6;
-@@ -958,6 +990,11 @@ protected:
+@@ -958,6 +1002,11 @@ protected:
  	void renderStringAmiga(uint vgaSpriteId, uint color, uint width, uint height, const char *txt);
  	void renderString(uint vgaSpriteId, uint color, uint width, uint height, const char *txt);
  
@@ -157,7 +169,7 @@ index 6a8d2237..58998dc0 100644
  
  	byte *allocBlock(uint32 size);
 diff --git a/engines/agos/charset-fontdata.cpp b/engines/agos/charset-fontdata.cpp
-index 193986e3..7d03b875 100644
+index 193986e3..8a894bc3 100644
 --- a/engines/agos/charset-fontdata.cpp
 +++ b/engines/agos/charset-fontdata.cpp
 @@ -22,12 +22,14 @@
@@ -175,7 +187,7 @@ index 193986e3..7d03b875 100644
  
  namespace AGOS {
  
-@@ -2914,6 +2916,652 @@ static const byte english_pnFont[] = {
+@@ -2914,6 +2916,609 @@ static const byte english_pnFont[] = {
  	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
  };
  
@@ -353,6 +365,57 @@ index 193986e3..7d03b875 100644
 +// 進 640x400 overlay(RGB), 再於其上以 16px Big5 直繪動詞面板中文(升採後行距 17px, 16px 可容納,
 +// 清晰不重疊)。遊戲渲染完全不碰 → 繞過 dual-layer 的 layout heisenbug crash。
 +// 由 displayScreen 於進遊戲後每幀呼叫; 首次呼叫前需 _system->showOverlay(false)。
++// 非上游: 基準空間(640x400)→ 實際 overlay 空間的填矩形。
++// 用「區間映射」(x0=RX(bx), x1=RX(bx+bw))而非「乘倍率」, 非整數倍(如 aspect 校正的
++// 640x480、retina 的任意物理尺寸)也不會留縫或重疊。
++void AGOSEngine::chtOvlFill(byte *dst, byte *cov, int bx, int by, int bw, int bh, uint32 col) {
++	if (!dst)
++		return;
++	const int ow = _chtOvlW, oh = _chtOvlH, bpp = _chtOvlBpp;
++	int x0 = chtRX(bx), x1 = chtRX(bx + bw);
++	int y0 = chtRY(by), y1 = chtRY(by + bh);
++	if (x1 <= x0) x1 = x0 + 1;      // 縮小映射時至少保留 1px, 不整條消失
++	if (y1 <= y0) y1 = y0 + 1;
++	if (x0 < 0) x0 = 0;
++	if (y0 < 0) y0 = 0;
++	if (x1 > ow) x1 = ow;
++	if (y1 > oh) y1 = oh;
++	for (int yy = y0; yy < y1; yy++) {
++		for (int xx = x0; xx < x1; xx++) {
++			uint idx = (uint)yy * ow + xx;
++			if (bpp == 2) ((uint16 *)dst)[idx] = (uint16)col;
++			else ((uint32 *)dst)[idx] = col;
++			if (cov) cov[idx] = 1;
++		}
++	}
++}
++
++// 非上游: 在基準座標 (bx,by) 畫一個 CJK 點陣字模, 每個字模像素映射成實際 overlay 的
++// 對應矩形 → 字隨 overlay 倍率等比放大(retina 下視覺大小與 x2 一致, 不會縮成一小塊)。
++void AGOSEngine::chtOvlBlitGlyph(byte *dst, byte *cov, const byte *g, int fw, int fh, int bpr, int bx, int by, uint32 col) {
++	if (!dst || !g)
++		return;
++	for (int row = 0; row < fh; row++) {
++		const byte *gr = g + row * bpr;
++		for (int c = 0; c < fw; c++) {
++			if (!(gr[c >> 3] & (0x80 >> (c & 7))))
++				continue;
++			chtOvlFill(dst, cov, bx + c, by + row, 1, 1, col);
++		}
++	}
++}
++
++// 非上游: 字模 + 1 基準像素描邊(描邊位移也在基準空間, 故隨倍率一起放大)。
++void AGOSEngine::chtOvlDrawGlyph(byte *dst, byte *cov, const byte *g, int fw, int fh, int bpr, int bx, int by, uint32 col, uint32 olCol, bool outline) {
++	if (outline) {
++		for (int dy = -1; dy <= 1; dy++)
++			for (int dx = -1; dx <= 1; dx++)
++				if (dx || dy)
++					chtOvlBlitGlyph(dst, cov, g, fw, fh, bpr, bx + dx, by + dy, olCol);
++	}
++	chtOvlBlitGlyph(dst, cov, g, fw, fh, bpr, bx, by, col);
++}
++
 +void AGOSEngine::chtOverlayCompose() {
 +	if (!_cht.font16)
 +		return;
@@ -365,35 +428,46 @@ index 193986e3..7d03b875 100644
 +	int bpp = fmt.bytesPerPixel;
 +	if (bpp != 2 && bpp != 4)
 +		return;
-+	if (!_chtOvlBuf) {
++	// 非上游: overlay 尺寸不是常數 —— retina 高 DPI 回報物理像素、玩家可改 scale factor、
++	// aspect ratio 校正把 400 拉成 480、視窗 resize 也會變。尺寸一變就必須重配 buffer,
++	// 否則後續全部以舊 stride 寫入 → 越界踩記憶體。
++	if (!_chtOvlBuf || ow != _chtOvlW || oh != _chtOvlH || bpp != _chtOvlBpp) {
++		free(_chtOvlBuf);
++		free(_chtTextLayer);
++		free(_chtTextCov);
 +		_chtOvlBuf = (byte *)malloc((uint)ow * oh * bpp);
-+		_chtTextLayer = (byte *)malloc((uint)ow * oh * bpp);
++		_chtTextLayer = (byte *)calloc((uint)ow * oh, bpp);
 +		_chtTextCov = (byte *)calloc((uint)ow * oh, 1);
 +		_chtOvlW = ow; _chtOvlH = oh; _chtOvlBpp = bpp;
++		debug(1, "CHTOVL: overlay=%dx%d game=%dx%d bpp=%d (基準 640x400 → 映射比 %.2fx/%.2fy)",
++		      ow, oh, gw, gh, bpp, (double)ow / kChtBaseW, (double)oh / kChtBaseH);
 +	}
 +	if (!_chtOvlBuf || !_chtTextLayer || !_chtTextCov)
 +		return;
-+	int sx = ow / gw, sy = oh / gh;      // 2, 2
-+	if (sx < 1) sx = 1;
-+	if (sy < 1) sy = 1;
 +	// 預算 palette → overlay 編碼色
 +	uint32 palEnc[256];
 +	for (int i = 0; i < 256; i++)
 +		palEnc[i] = fmt.RGBToColor(_currentPalette[i * 3], _currentPalette[i * 3 + 1], _currentPalette[i * 3 + 2]);
-+	// 升採遊戲畫面 (nearest)
++	// 升採遊戲畫面 (nearest)。
++	// 非上游修正(issue1): 取樣索引必須用比例映射 ox*gw/ow, 不能用整數倍 ox/(ow/gw) ——
++	// overlay 不是遊戲尺寸的整數倍時(retina 物理像素、aspect 校正的 640x480), 整數倍
++	// 除法會讓索引超過 gw-1/gh-1, 讀到 surface 下一列的資料 → 畫面右緣/下緣冒出重複的
++	// 面板影像(玩家 issue1 截圖右側那條重複的 ROOM/INV/WEAPONS)。
 +	const byte *src = (const byte *)game->getPixels();
 +	uint gpitch = game->pitch;
 +	for (int oy = 0; oy < oh; oy++) {
-+		const byte *srow = src + (oy / sy) * gpitch;
++		int sy = oy * gh / oh;
++		if (sy >= gh) sy = gh - 1;
++		const byte *srow = src + sy * gpitch;
 +		byte *drow = _chtOvlBuf + (uint)oy * ow * bpp;
 +		if (bpp == 2) {
 +			uint16 *d = (uint16 *)drow;
 +			for (int ox = 0; ox < ow; ox++)
-+				d[ox] = (uint16)palEnc[srow[ox / sx]];
++				d[ox] = (uint16)palEnc[srow[ox * gw / ow]];
 +		} else {
 +			uint32 *d = (uint32 *)drow;
 +			for (int ox = 0; ox < ow; ox++)
-+				d[ox] = palEnc[srow[ox / sx]];
++				d[ox] = palEnc[srow[ox * gw / ow]];
 +		}
 +	}
 +	// getBackendSurface() 非-hires = _system->lockScreen(); 讀完遊戲畫面立即解鎖(下方只寫 _chtOvlBuf)。
@@ -448,16 +522,8 @@ index 193986e3..7d03b875 100644
 +	// 狀態列右端的 EXP 數值(overlay y≈254-276)。
 +	// 右欄 OPEN..RESTORE: 判定框 y9..121(遊戲) → overlay 18..244, 取 16..246。
 +	// 左欄 ROOM/INV/WEAPONS: 判定框 y12..42 → overlay 24..84, 取 22..90。
-+	for (int yy = 16; yy < 246; yy++)
-+		for (int xx = 554; xx < 640; xx++) {
-+			if (bpp == 2) ((uint16 *)_chtOvlBuf)[yy * ow + xx] = (uint16)cBlack;
-+			else ((uint32 *)_chtOvlBuf)[yy * ow + xx] = cBlack;
-+		}
-+	for (int yy = 22; yy < 90; yy++)
-+		for (int xx = 6; xx < 90; xx++) {
-+			if (bpp == 2) ((uint16 *)_chtOvlBuf)[yy * ow + xx] = (uint16)cBlack;
-+			else ((uint32 *)_chtOvlBuf)[yy * ow + xx] = cBlack;
-+		}
++	chtOvlFill(_chtOvlBuf, nullptr, 554, 16, 86, 230, cBlack);   // 右欄 OPEN..RESTORE
++	chtOvlFill(_chtOvlBuf, nullptr, 6, 22, 84, 68, cBlack);      // 左欄 ROOM/INV/WEAPONS
 +	int nAll = ARRAYSIZE(kRight) + ARRAYSIZE(kLeft);
 +	for (int li = 0; li < nAll; li++) {
 +		bool left = (li >= (int)ARRAYSIZE(kRight));
@@ -473,32 +539,7 @@ index 193986e3..7d03b875 100644
 +			if (!g)
 +				continue;
 +			int cx = x0 + ci * fw;
-+			for (int pass = 0; pass < 2; pass++) {
-+				uint32 col = (pass == 0) ? cBlack : cWhite;
-+				for (int row = 0; row < fh; row++) {
-+					const byte *gr = g + row * bpr;
-+					for (int c = 0; c < fw; c++) {
-+						if (!(gr[c >> 3] & (0x80 >> (c & 7))))
-+							continue;
-+						if (pass == 0) {
-+							for (int dy = -1; dy <= 1; dy++)
-+								for (int dx = -1; dx <= 1; dx++) {
-+									int xx = cx + c + dx, yy = y0 + row + dy;
-+									if (xx >= 0 && xx < ow && yy >= 0 && yy < oh) {
-+										if (bpp == 2) ((uint16 *)_chtOvlBuf)[yy * ow + xx] = (uint16)col;
-+										else ((uint32 *)_chtOvlBuf)[yy * ow + xx] = col;
-+									}
-+								}
-+						} else {
-+							int xx = cx + c, yy = y0 + row;
-+							if (xx >= 0 && xx < ow && yy >= 0 && yy < oh) {
-+								if (bpp == 2) ((uint16 *)_chtOvlBuf)[yy * ow + xx] = (uint16)col;
-+								else ((uint32 *)_chtOvlBuf)[yy * ow + xx] = col;
-+							}
-+						}
-+					}
-+				}
-+			}
++			chtOvlDrawGlyph(_chtOvlBuf, nullptr, g, fw, fh, bpr, cx, y0, cWhite, cBlack, true);
 +		}
 +	}
 +	// 無敵(F7)指示器: 遊戲區頂端疊「無敵模式」(16px, 亮黃 + 描邊 + 深底框, 任意背景皆可見)
@@ -507,41 +548,12 @@ index 193986e3..7d03b875 100644
 +		int gx = 210, gy = 6;   // overlay 座標(遊戲區頂端中央偏左)
 +		uint32 gcol = fmt.RGBToColor(255, 235, 60), gol = fmt.RGBToColor(0, 0, 0);
 +		uint32 gbg = fmt.RGBToColor(20, 20, 20);
-+		for (int yy = gy - 2; yy < gy + _cht.fontH16 + 2; yy++)
-+			for (int xx = gx - 3; xx < gx + 4 * _cht.fontW16 + 3; xx++)
-+				if (xx >= 0 && xx < ow && yy >= 0 && yy < oh) {
-+					if (bpp == 2) ((uint16 *)_chtOvlBuf)[yy * ow + xx] = (uint16)gbg;
-+					else ((uint32 *)_chtOvlBuf)[yy * ow + xx] = gbg;
-+				}
++		chtOvlFill(_chtOvlBuf, nullptr, gx - 3, gy - 2, 4 * _cht.fontW16 + 6, _cht.fontH16 + 4, gbg);
 +		int cx = gx;
 +		for (const byte *s = kGod; *s; s += 2) {
 +			const byte *g = _cht.glyph16(s[0], s[1]);
-+			if (g) {
-+				for (int pass = 0; pass < 2; pass++) {
-+					uint32 c = (pass == 0) ? gol : gcol;
-+					for (int row = 0; row < _cht.fontH16; row++) {
-+						const byte *gr = g + row * _cht.fontBpr16;
-+						for (int col = 0; col < _cht.fontW16; col++) {
-+							if (!(gr[col >> 3] & (0x80 >> (col & 7)))) continue;
-+							if (pass == 0) {
-+								for (int dy = -1; dy <= 1; dy++) for (int dx = -1; dx <= 1; dx++) {
-+									int xx = cx + col + dx, yy = gy + row + dy;
-+									if (xx >= 0 && xx < ow && yy >= 0 && yy < oh) {
-+										if (bpp == 2) ((uint16 *)_chtOvlBuf)[yy * ow + xx] = (uint16)c;
-+										else ((uint32 *)_chtOvlBuf)[yy * ow + xx] = c;
-+									}
-+								}
-+							} else {
-+								int xx = cx + col, yy = gy + row;
-+								if (xx >= 0 && xx < ow && yy >= 0 && yy < oh) {
-+									if (bpp == 2) ((uint16 *)_chtOvlBuf)[yy * ow + xx] = (uint16)c;
-+									else ((uint32 *)_chtOvlBuf)[yy * ow + xx] = c;
-+								}
-+							}
-+						}
-+					}
-+				}
-+			}
++			if (g)
++				chtOvlDrawGlyph(_chtOvlBuf, nullptr, g, _cht.fontW16, _cht.fontH16, _cht.fontBpr16, cx, gy, gcol, gol, true);
 +			cx += _cht.fontW16;
 +		}
 +	}
@@ -570,12 +582,13 @@ index 193986e3..7d03b875 100644
 +	Item *cur = player ? derefItem(player->parent) : nullptr;
 +	if (!cur || !isRoom(cur))
 +		return;
-+	const int ow = _chtOvlW, oh = _chtOvlH, bpp = _chtOvlBpp;
 +	Graphics::PixelFormat fmt = _system->getOverlayFormat();
 +	uint32 cBg = fmt.RGBToColor(12, 12, 24), cBorder = fmt.RGBToColor(180, 180, 190);
 +	uint32 cRoom = fmt.RGBToColor(90, 90, 110), cCur = fmt.RGBToColor(255, 220, 40);
 +	uint32 cLink = fmt.RGBToColor(150, 150, 160), cTxt = fmt.RGBToColor(235, 235, 210);
-+#define CHT_PX(X, Y, C) do { int _x=(X),_y=(Y); if(_x>=0&&_x<ow&&_y>=0&&_y<oh){ if(bpp==2)((uint16*)_chtOvlBuf)[_y*ow+_x]=(uint16)(C); else ((uint32*)_chtOvlBuf)[_y*ow+_x]=(C);} } while(0)
++	// 非上游: 地圖座標同樣寫在基準 640x400 空間, 逐點經 chtOvlFill 映射到實際 overlay
++	// (高 DPI 下一個基準點 = 一個放大矩形, 線條不會細到看不見)。
++#define CHT_PX(X, Y, C) chtOvlFill(_chtOvlBuf, nullptr, (X), (Y), 1, 1, (C))
 +
 +	// BFS 已探索房間
 +	struct MR { uint16 id; int16 gx, gy; };
@@ -622,11 +635,8 @@ index 193986e3..7d03b875 100644
 +		int cxp = tx;
 +		for (const byte *s = kMap; *s; s += 2) {
 +			const byte *g = _cht.glyph(s[0], s[1]);
-+			if (g) for (int row = 0; row < _cht.fontH; row++) {
-+				const byte *gr = g + row * _cht.fontBpr;
-+				for (int c = 0; c < _cht.fontW; c++)
-+					if (gr[c >> 3] & (0x80 >> (c & 7))) CHT_PX(cxp + c, ty + row, cTxt);
-+			}
++			if (g)
++				chtOvlBlitGlyph(_chtOvlBuf, nullptr, g, _cht.fontW, _cht.fontH, _cht.fontBpr, cxp, ty, cTxt);
 +			cxp += _cht.fontW;
 +		}
 +	}
@@ -693,36 +703,16 @@ index 193986e3..7d03b875 100644
 +	for (const char *p = s; p[0] && p[1]; p += 2)
 +		n++;
 +	const int fw = _cht.fontW16, fh = _cht.fontH16, bpr = _cht.fontBpr16;
-+	const int ow = _chtOvlW, oh = _chtOvlH, bpp = _chtOvlBpp;
 +	Graphics::PixelFormat fmt = _system->getOverlayFormat();
 +	uint32 col = fmt.RGBToColor(30, 25, 20);        // 捲軸是米黃底 → 深色字
 +	uint32 olc = fmt.RGBToColor(235, 230, 210);     // 淺色描邊, 花紋上也讀得到
++	// x0/y0 仍是基準空間(= 遊戲座標 x2, 對齊腳本定義的判定框), 由 chtOvlDrawGlyph 映射。
 +	int x0 = gcx * 2 - n * fw / 2, y0 = gcy * 2 - fh / 2;
 +	for (int ci = 0; ci < n; ci++) {
 +		const byte *g = _cht.glyph16((byte)s[ci * 2], (byte)s[ci * 2 + 1]);
 +		if (!g)
 +			continue;
-+		int bx = x0 + ci * fw;
-+		for (int pass = 0; pass < 2; pass++) {
-+			uint32 c = (pass == 0) ? olc : col;
-+			for (int row = 0; row < fh; row++) {
-+				const byte *gr = g + row * bpr;
-+				for (int cc = 0; cc < fw; cc++) {
-+					if (!(gr[cc >> 3] & (0x80 >> (cc & 7))))
-+						continue;
-+					for (int dy = (pass == 0 ? -1 : 0); dy <= (pass == 0 ? 1 : 0); dy++)
-+						for (int dx = (pass == 0 ? -1 : 0); dx <= (pass == 0 ? 1 : 0); dx++) {
-+							int xx = bx + cc + dx, yy = y0 + row + dy;
-+							if (xx < 0 || xx >= ow || yy < 0 || yy >= oh)
-+								continue;
-+							uint idx = yy * ow + xx;
-+							if (bpp == 2) ((uint16 *)_chtTextLayer)[idx] = (uint16)c;
-+							else ((uint32 *)_chtTextLayer)[idx] = c;
-+							_chtTextCov[idx] = 1;
-+						}
-+				}
-+			}
-+		}
++		chtOvlDrawGlyph(_chtTextLayer, _chtTextCov, g, fw, fh, bpr, x0 + ci * fw, y0, col, olc, true);
 +	}
 +}
 +
@@ -743,7 +733,6 @@ index 193986e3..7d03b875 100644
 +	if (!g)
 +		return;
 +	const int fw = _cht.fontW14, fh = _cht.fontH14, bpr = _cht.fontBpr14;
-+	const int ow = _chtOvlW, oh = _chtOvlH, bpp = _chtOvlBpp;
 +	Graphics::PixelFormat fmt = _system->getOverlayFormat();
 +	byte ti = chtReadableColor((byte)(window->textColor ? window->textColor : 15));
 +	uint32 col = fmt.RGBToColor(_currentPalette[ti * 3], _currentPalette[ti * 3 + 1], _currentPalette[ti * 3 + 2]);
@@ -756,42 +745,18 @@ index 193986e3..7d03b875 100644
 +	int cellX = window->x * 16 + charIdx * kChtDlgCharW;
 +	int cellY = window->y * 2 + lineIdx * kChtDlgLineH;
 +	int bx = cellX + (kChtDlgCharW - fw) / 2, by = cellY + (kChtDlgLineH - fh) / 2;
-+	for (int pass = 0; pass < 2; pass++) {
-+		uint32 c = (pass == 0) ? olc : col;
-+		for (int row = 0; row < fh; row++) {
-+			const byte *gr = g + row * bpr;
-+			for (int cc = 0; cc < fw; cc++) {
-+				if (!(gr[cc >> 3] & (0x80 >> (cc & 7))))
-+					continue;
-+				if (pass == 0) {
-+					for (int dy = -1; dy <= 1; dy++)
-+						for (int dx = -1; dx <= 1; dx++) {
-+							int xx = bx + cc + dx, yy = by + row + dy;
-+							if (xx < 0 || xx >= ow || yy < 0 || yy >= oh) continue;
-+							uint idx = yy * ow + xx;
-+							if (bpp == 2) ((uint16 *)_chtTextLayer)[idx] = (uint16)c;
-+							else ((uint32 *)_chtTextLayer)[idx] = c;
-+							_chtTextCov[idx] = 1;
-+						}
-+				} else {
-+					int xx = bx + cc, yy = by + row;
-+					if (xx < 0 || xx >= ow || yy < 0 || yy >= oh) continue;
-+					uint idx = yy * ow + xx;
-+					if (bpp == 2) ((uint16 *)_chtTextLayer)[idx] = (uint16)c;
-+					else ((uint32 *)_chtTextLayer)[idx] = c;
-+					_chtTextCov[idx] = 1;
-+				}
-+			}
-+		}
-+	}
++	chtOvlDrawGlyph(_chtTextLayer, _chtTextCov, g, fw, fh, bpr, bx, by, col, olc, true);
 +}
 +
 +// 清除文字層某視窗區(overlay 座標, 鏡像 clearWindow 的 hires 矩形): window->x/width 單位 8px 欄, y/height 像素/8列。
 +void AGOSEngine::chtTextLayerClear(WindowBlock *window) {
 +	if (!_chtTextCov || !window)
 +		return;
-+	int hx = window->x * 16, hw = window->width * 16;
-+	int hy = window->y * 2, hh = window->height * 16;
++	// 矩形先在基準空間算好, 再映射到實際 overlay(retina / aspect 校正下 stride 不是 640)。
++	int bx = window->x * 16, by = window->y * 2;
++	int hx = chtRX(bx), hy = chtRY(by);
++	int hw = chtRX(bx + window->width * 16) - hx;
++	int hh = chtRY(by + window->height * 16) - hy;
 +	if (hx < 0) hx = 0;
 +	if (hy < 0) hy = 0;
 +	if (hx + hw > _chtOvlW) hw = _chtOvlW - hx;
@@ -805,14 +770,18 @@ index 193986e3..7d03b875 100644
 +	if (!_chtTextLayer || !_chtTextCov || !window || window->height == 1)
 +		return;
 +	const int ow = _chtOvlW, bpp = _chtOvlBpp;
-+	const int shift = kChtDlgLineH / 2;   // 9px; 兩次呼叫 = 一壓縮行
-+	int hx = window->x * 16, hw = window->width * 16;
-+	int hy = window->y * 2;
-+	int ch = window->height * 16 - shift;   // 保留高度(overlay px)
++	// 捲動量也是基準空間的 9px, 映射後才是實際 overlay 的位移量(高 DPI 下會 >9px)。
++	const int bShift = kChtDlgLineH / 2;   // 9px 基準; 兩次呼叫 = 一壓縮行
++	int bx = window->x * 16, by = window->y * 2;
++	int hx = chtRX(bx), hy = chtRY(by);
++	int hw = chtRX(bx + window->width * 16) - hx;
++	int shift = chtRY(by + bShift) - hy;
++	if (shift < 1) shift = 1;
++	int ch = (chtRY(by + window->height * 16) - hy) - shift;   // 保留高度(實際 overlay px)
 +	if (hx < 0) hx = 0;
 +	if (hy < 0) hy = 0;
 +	if (hx + hw > ow) hw = ow - hx;
-+	if (hw <= 0) return;
++	if (hw <= 0 || ch <= 0) return;
 +	for (int r = 0; r < ch; r++) {
 +		int dY = hy + r, sY = hy + r + shift;
 +		if (sY >= _chtOvlH) break;
@@ -931,232 +900,6 @@ index 05451427..8a563312 100644
  		Common::Rect dirtyRect(window->x * 8, window->y, window->x * 8 + w2, window->y + h2);
  		updateBackendSurface(&dirtyRect);
  	}
-diff --git a/engines/agos/cht_fusion.cpp b/engines/agos/cht_fusion.cpp
-new file mode 100644
-index 00000000..e9f908c5
---- /dev/null
-+++ b/engines/agos/cht_fusion.cpp
-@@ -0,0 +1,128 @@
-+/* Elvira 1（古堡禁地）繁中融合 — 載入器 (非上游) */
-+#include "agos/cht_fusion.h"
-+#include "common/file.h"
-+#include "common/debug.h"
-+
-+namespace AGOS {
-+
-+// 載入 DCJK 字型檔到 fus.font
-+bool chtLoadFont(ChtFusion &fus, const char *filename) {
-+	Common::File f;
-+	if (!f.open(filename))
-+		return false;
-+	byte hdr[15];
-+	if (f.read(hdr, 15) != 15)
-+		return false;
-+	if (memcmp(hdr, "DCJK", 4) != 0)
-+		return false;
-+	fus.fontW = hdr[5];
-+	fus.fontH = hdr[6];
-+	fus.fontBpr = hdr[7];
-+	fus.numGlyphs = READ_LE_UINT32(hdr + 11);
-+	uint32 dataSize = fus.numGlyphs * fus.fontBpr * fus.fontH;
-+	fus.font = (byte *)malloc(dataSize);
-+	if (!fus.font)
-+		return false;
-+	if (f.read(fus.font, dataSize) != dataSize) {
-+		free(fus.font);
-+		fus.font = nullptr;
-+		return false;
-+	}
-+	debug(0, "CHT: font %s loaded (%dx%d, %u glyphs)", filename, fus.fontW, fus.fontH, fus.numGlyphs);
-+	return true;
-+}
-+
-+// 載入 16x16 DCJK 小字型到 fus.font16 (指令面板用)
-+bool chtLoadFont16(ChtFusion &fus, const char *filename) {
-+	Common::File f;
-+	if (!f.open(filename))
-+		return false;
-+	byte hdr[15];
-+	if (f.read(hdr, 15) != 15)
-+		return false;
-+	if (memcmp(hdr, "DCJK", 4) != 0)
-+		return false;
-+	fus.fontW16 = hdr[5];
-+	fus.fontH16 = hdr[6];
-+	fus.fontBpr16 = hdr[7];
-+	fus.numGlyphs16 = READ_LE_UINT32(hdr + 11);
-+	uint32 dataSize = fus.numGlyphs16 * fus.fontBpr16 * fus.fontH16;
-+	fus.font16 = (byte *)malloc(dataSize);
-+	if (!fus.font16)
-+		return false;
-+	if (f.read(fus.font16, dataSize) != dataSize) {
-+		free(fus.font16);
-+		fus.font16 = nullptr;
-+		return false;
-+	}
-+	debug(0, "CHT: panel font %s loaded (%dx%d, %u glyphs)", filename, fus.fontW16, fus.fontH16, fus.numGlyphs16);
-+	return true;
-+}
-+
-+// 載入 14x14 DCJK 對白字型到 fus.font14 (overlay 文字層對白/敘述用)
-+bool chtLoadFont14(ChtFusion &fus, const char *filename) {
-+	Common::File f;
-+	if (!f.open(filename))
-+		return false;
-+	byte hdr[15];
-+	if (f.read(hdr, 15) != 15)
-+		return false;
-+	if (memcmp(hdr, "DCJK", 4) != 0)
-+		return false;
-+	fus.fontW14 = hdr[5];
-+	fus.fontH14 = hdr[6];
-+	fus.fontBpr14 = hdr[7];
-+	fus.numGlyphs14 = READ_LE_UINT32(hdr + 11);
-+	uint32 dataSize = fus.numGlyphs14 * fus.fontBpr14 * fus.fontH14;
-+	fus.font14 = (byte *)malloc(dataSize);
-+	if (!fus.font14)
-+		return false;
-+	if (f.read(fus.font14, dataSize) != dataSize) {
-+		free(fus.font14);
-+		fus.font14 = nullptr;
-+		return false;
-+	}
-+	debug(0, "CHT: dialogue font %s loaded (%dx%d, %u glyphs)", filename, fus.fontW14, fus.fontH14, fus.numGlyphs14);
-+	return true;
-+}
-+
-+// 載入譯表 elvira1_zh.tab (STAB: magic, count, [id:4][len:2][big5..])
-+bool chtLoadTable(ChtFusion &fus, const char *filename) {
-+	Common::File f;
-+	if (!f.open(filename))
-+		return false;
-+	byte magic[4];
-+	if (f.read(magic, 4) != 4 || memcmp(magic, "STAB", 4) != 0)
-+		return false;
-+	uint32 count = f.readUint32LE();
-+	for (uint32 i = 0; i < count; i++) {
-+		uint32 id = f.readUint32LE();
-+		uint16 len = f.readUint16LE();
-+		Common::String s;
-+		for (uint16 k = 0; k < len; k++)
-+			s += (char)f.readByte();
-+		fus.table[id] = s;
-+	}
-+	debug(0, "CHT: translation table %s loaded (%u entries)", filename, count);
-+	return true;
-+}
-+
-+// 載入語音對映 (Elvira 1 floppy 無語音, 保留) (VMAP: magic, count, [id:4][speech:2])
-+bool chtLoadVoiceMap(ChtFusion &fus, const char *filename) {
-+	Common::File f;
-+	if (!f.open(filename))
-+		return false;
-+	byte magic[4];
-+	if (f.read(magic, 4) != 4 || memcmp(magic, "VMAP", 4) != 0)
-+		return false;
-+	uint32 count = f.readUint32LE();
-+	for (uint32 i = 0; i < count; i++) {
-+		uint32 id = f.readUint32LE();
-+		uint16 sp = f.readUint16LE();
-+		fus.voice[id] = sp;
-+	}
-+	debug(0, "CHT: voice map %s loaded (%u entries)", filename, count);
-+	return true;
-+}
-+
-+} // namespace AGOS
-diff --git a/engines/agos/cht_fusion.h b/engines/agos/cht_fusion.h
-new file mode 100644
-index 00000000..f949d972
---- /dev/null
-+++ b/engines/agos/cht_fusion.h
-@@ -0,0 +1,86 @@
-+/* Elvira 1 - Mistress of the Dark（古堡禁地）繁體中文化 — 非上游模組。
-+ * 資料: elvira1_zh24.dcjk (Big5 24x24 點陣), elvira1_zh16.dcjk (16x16),
-+ *       elvira1_zh.tab (id→Big5 譯表)。
-+ * 引擎共用掛勾: getStringPtrByID(string.cpp) 依 stringId 換 Big5 完整譯文。
-+ */
-+#ifndef AGOS_CHT_FUSION_H
-+#define AGOS_CHT_FUSION_H
-+
-+#include "common/scummsys.h"
-+#include "common/hashmap.h"
-+#include "common/str.h"
-+
-+namespace AGOS {
-+
-+// Big5 線性索引 (與 build_cjk_font.py 對齊): (lead-0x81)*157 + trailOffset
-+inline bool chtIsBig5Lead(byte c) { return c >= 0x81 && c <= 0xFE; }
-+
-+inline int chtBig5Index(byte lead, byte trail) {
-+	if (lead < 0x81 || lead > 0xFE)
-+		return -1;
-+	int to;
-+	if (trail >= 0x40 && trail <= 0x7E)
-+		to = trail - 0x40;
-+	else if (trail >= 0xA1 && trail <= 0xFE)
-+		to = 63 + (trail - 0xA1);
-+	else
-+		return -1;
-+	return (lead - 0x81) * 157 + to;
-+}
-+
-+struct ChtFusion {
-+	// 字型 (24x24, 字幕/視窗文字用)
-+	byte *font = nullptr;      // DCJK glyph 區起點 (跳過 15-byte header)
-+	int fontW = 0, fontH = 0, fontBpr = 0;
-+	uint32 numGlyphs = 0;
-+	// 小字型 (16x16, 底部指令面板小格用)
-+	byte *font16 = nullptr;
-+	int fontW16 = 0, fontH16 = 0, fontBpr16 = 0;
-+	uint32 numGlyphs16 = 0;
-+	// 對白小字型 (14x14, overlay 文字層對白/敘述用)
-+	byte *font14 = nullptr;
-+	int fontW14 = 0, fontH14 = 0, fontBpr14 = 0;
-+	uint32 numGlyphs14 = 0;
-+	// 譯表: floppy stringId -> Big5 字串
-+	Common::HashMap<uint32, Common::String> table;
-+	// 語音: floppy stringId -> CD speechId (Elvira 1 floppy 無語音, 保留欄位)
-+	Common::HashMap<uint32, uint16> voice;
-+
-+	bool fontLoaded() const { return font != nullptr; }
-+	bool hasTable() const { return !table.empty(); }
-+
-+	// 取得某 Big5 字的 glyph bitmap (fontBpr*fontH bytes), 找不到回 nullptr
-+	const byte *glyph(byte lead, byte trail) const {
-+		if (!font) return nullptr;
-+		int idx = chtBig5Index(lead, trail);
-+		if (idx < 0 || (uint32)idx >= numGlyphs) return nullptr;
-+		return font + (uint32)idx * fontBpr * fontH;
-+	}
-+
-+	// 16x16 小字模版本 (指令面板用)
-+	const byte *glyph16(byte lead, byte trail) const {
-+		if (!font16) return nullptr;
-+		int idx = chtBig5Index(lead, trail);
-+		if (idx < 0 || (uint32)idx >= numGlyphs16) return nullptr;
-+		return font16 + (uint32)idx * fontBpr16 * fontH16;
-+	}
-+
-+	// 14x14 對白字模版本
-+	const byte *glyph14(byte lead, byte trail) const {
-+		if (!font14) return nullptr;
-+		int idx = chtBig5Index(lead, trail);
-+		if (idx < 0 || (uint32)idx >= numGlyphs14) return nullptr;
-+		return font14 + (uint32)idx * fontBpr14 * fontH14;
-+	}
-+
-+};
-+
-+bool chtLoadFont(ChtFusion &fus, const char *filename);
-+bool chtLoadFont16(ChtFusion &fus, const char *filename);
-+bool chtLoadFont14(ChtFusion &fus, const char *filename);
-+bool chtLoadTable(ChtFusion &fus, const char *filename);
-+bool chtLoadVoiceMap(ChtFusion &fus, const char *filename);
-+
-+} // namespace AGOS
-+
-+#endif
 diff --git a/engines/agos/cursor.cpp b/engines/agos/cursor.cpp
 index 3cb73123..193d8e4e 100644
 --- a/engines/agos/cursor.cpp
