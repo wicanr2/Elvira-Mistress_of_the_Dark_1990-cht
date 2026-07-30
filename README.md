@@ -9,6 +9,19 @@
   <br><em>片頭 ELVIRA 遊戲名畫面，疊上繁中標題「古堡禁地」</em>
 </p>
 
+## ▶ 推廣片
+
+實機畫面 + 原版 MT-32 配樂，帶你看它說中文的樣子：
+
+<p align="center">
+  <a href="https://youtu.be/iTCZQFmdKAo">
+    <img src="https://img.youtube.com/vi/iTCZQFmdKAo/hqdefault.jpg" width="480" alt="古堡禁地 繁體中文版 推廣片"><br>
+    ▶ 在 YouTube 觀看
+  </a>
+</p>
+
+---
+
 這是 1990 年恐怖冒險經典 **《Elvira - Mistress of the Dark》** 的繁體中文化專案。基於 [ScummVM](https://www.scummvm.org/) 的 AGOS 引擎，以**最小且乾淨的引擎 patch** 注入繁體中文——遊戲原檔一個位元都不改，執行時依字串 id 查表換成中文。譯名以 **1991 年軟體世界（智冠）官方珍藏版說明書** 為最高權威，並對照現代玩家熟悉的稱呼。
 
 本 repo **只放 patch 與繁中資產**（`.patch`＋字型＋譯文）；遊戲原檔請自備。
