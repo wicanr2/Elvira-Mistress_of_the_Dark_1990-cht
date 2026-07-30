@@ -52,3 +52,6 @@ dist-all/
 
 # macOS CI artifact(含引擎 + 本機注入遊戲的完整版, 不入庫)
 dist-macos-artifact/
+
+# appimagetool 等打包工具(大 binary, 不入庫; 從姊妹專案複製或另抓)
+.toolcache/
