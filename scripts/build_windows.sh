@@ -9,7 +9,7 @@
 # mingw ld 視為 incompatible 而跳過, 但 nm 讀 ELF 正常故看起來「明明有定義」。
 # 改成「複製一份源碼樹 + 清掉所有 .o/.a」後 mt32emu 正常連結(同 elvira_2_cht 的作法)。
 set -e
-PROJ="/home/anr2/scummvm/elvira_cht/workplace"
+PROJ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 docker run --rm -v "$PROJ:/w" -w /w debian:bookworm-slim bash -c '
   set -e
   export DEBIAN_FRONTEND=noninteractive

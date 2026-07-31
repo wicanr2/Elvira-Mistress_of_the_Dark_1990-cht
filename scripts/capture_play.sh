@@ -1,7 +1,7 @@
 #!/bin/bash
 # 長 playthrough:進場後大量點擊(動詞+物件+導航)觸發 getStringPtrByID,收集 CHTMISS oracle + 截圖。
 set -e
-PROJ="/home/anr2/scummvm/elvira_cht/workplace"
+PROJ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OUT="${1:-play}"
 docker run --rm -v "$PROJ:/work" -w /work agos-build bash -c "
   export XDG_RUNTIME_DIR=/tmp/xdg; mkdir -p /tmp/xdg

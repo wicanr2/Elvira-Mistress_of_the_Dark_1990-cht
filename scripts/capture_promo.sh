@@ -2,7 +2,7 @@
 # 推廣片實機 A/V 擷取:MT-32 原版配樂 + 繁中畫面(片頭古堡禁地→面板→對白→地圖→無敵)。
 # 全 docker(agos-capture)。輸出 raw_promo.mp4(gitignore,作 Release 素材)。
 set -e
-PROJ="/home/anr2/scummvm/elvira_cht/workplace"
+PROJ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 docker run --rm -v "$PROJ:/work" -w /work agos-capture bash -c '
   export XDG_RUNTIME_DIR=/tmp/xdg; mkdir -p /tmp/xdg
   pulseaudio -D --exit-idle-time=-1 2>/dev/null; sleep 1

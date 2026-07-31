@@ -1,7 +1,7 @@
 #!/bin/bash
 # 全速 LD_PRELOAD segtrace + verb 點擊,崩潰時印 backtrace(不改時序,能重現)。
 set -e
-PROJ="/home/anr2/scummvm/elvira_cht/workplace"
+PROJ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OUT="${1:-seg}"
 docker run --rm -v "$PROJ:/work" -w /work agos-build bash -c "
   export XDG_RUNTIME_DIR=/tmp/xdg; mkdir -p /tmp/xdg; export SDL_AUDIODRIVER=dummy

@@ -1,7 +1,7 @@
 #!/bin/bash
 # 剪接推廣片:Noto CJK 標題卡 + 尾卡 + 正規化 MT-32 配樂 + 拼接。輸出 dist-all/古堡禁地-推廣片.mp4。
 set -e
-PROJ="/home/anr2/scummvm/elvira_cht/workplace"
+PROJ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 docker run --rm -v "$PROJ:/work" -w /work agos-capture bash -c '
   set -e
   F="/usr/share/fonts/opentype/noto/NotoSerifCJK-Bold.ttc"

@@ -2,7 +2,7 @@
 # Linux 完整版(本機保留, 含遊戲原檔 + MT-32 ROM, 不可散佈): 從公開版加料。
 # 需先跑 scripts/build_linux.sh。產物: dist-all/古堡禁地-CHT-FULL-linux-x86_64.tar.gz
 set -e
-PROJ="/home/anr2/scummvm/elvira_cht/workplace"
+PROJ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SRC="$PROJ/dist-all/古堡禁地-CHT-linux-x86_64.tar.gz"
 [ -f "$SRC" ] || { echo "!! 先跑 scripts/build_linux.sh"; exit 1; }
 docker run --rm -v "$PROJ:/w" -w /w agos-build bash -c '

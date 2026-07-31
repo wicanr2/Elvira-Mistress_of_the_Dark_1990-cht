@@ -7,7 +7,7 @@
 # 遊戲夾優先序: AppImage 同目錄的 elvira1-game/ → ~/.local/share/elvira1-cht/game/。
 # [HARD] cat > AppRun 前先 rm -f 斷 symlink(本腳本 AppDir 全新建, 無此風險, 仍保險處理)。
 set -e
-PROJ="/home/anr2/scummvm/elvira_cht/workplace"
+PROJ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 [ -f "$PROJ/build/scummvm-src/scummvm" ] || { echo "!! 先 build scummvm"; exit 1; }
 [ -x "$PROJ/.toolcache/appimagetool" ] || { echo "!! 缺 .toolcache/appimagetool"; exit 1; }
 mkdir -p "$PROJ/dist-all"

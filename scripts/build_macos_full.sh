@@ -4,7 +4,7 @@
 # 需先把 CI artifact 的引擎 tar.gz 放進 dist-macos-artifact/(gh run download)。
 # 產物: dist-all/古堡禁地-CHT-FULL-macos-universal.tar.gz
 set -e
-PROJ="/home/anr2/scummvm/elvira_cht/workplace"
+PROJ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ENG=$(find "$PROJ/dist-macos-artifact" -name "古堡禁地-CHT-macos-universal.tar.gz" 2>/dev/null | head -1)
 [ -n "$ENG" ] || { echo "!! 缺 macOS 引擎 tar.gz(先 gh run download 到 dist-macos-artifact/)"; exit 1; }
 echo "使用引擎包: $ENG"

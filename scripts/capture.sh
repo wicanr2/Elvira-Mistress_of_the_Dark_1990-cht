@@ -2,7 +2,7 @@
 # headless 截圖驗證。用法: capture.sh <boot_param> <秒數> <輸出前綴> [每2秒執行的按鍵指令]
 # [HARD] Xvfb x16(x8 會炸 render driver)+ SDL_AUDIODRIVER=dummy。
 set -e
-PROJ="/home/anr2/scummvm/elvira_cht/workplace"
+PROJ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BOOT="${1:-0}"; SECS="${2:-8}"; OUT="${3:-shot}"
 mkdir -p "$PROJ/screenshots"
 docker run --rm -v "$PROJ:/work" -w /work agos-build bash -c "

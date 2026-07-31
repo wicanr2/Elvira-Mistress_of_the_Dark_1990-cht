@@ -1,7 +1,7 @@
 #!/bin/bash
 # 互動驗證:啟動→等 18s 進場→對數個場景物件做 EXAMINE(檢視)→截圖看 Big5 對白渲染。
 set -e
-PROJ="/home/anr2/scummvm/elvira_cht/workplace"
+PROJ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OUT="${1:-exam}"
 docker run --rm -v "$PROJ:/work" -w /work agos-build bash -c "
   export XDG_RUNTIME_DIR=/tmp/xdg; mkdir -p /tmp/xdg

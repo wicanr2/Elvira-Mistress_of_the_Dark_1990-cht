@@ -2,7 +2,7 @@
 # Linux 引擎包(patch-only 可公開散佈):patched ScummVM(AGOS+CHT) + 收非系統 .so + 繁中字型 + 啟動器。
 # 玩家自備 Elvira 原檔放進 game/ 即可玩。產物: dist-all/古堡禁地-CHT-linux-x86_64.tar.gz
 set -e
-PROJ="/home/anr2/scummvm/elvira_cht/workplace"
+PROJ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 [ -f "$PROJ/build/scummvm-src/scummvm" ] || { echo "!! 先 build scummvm"; exit 1; }
 mkdir -p "$PROJ/dist-all"
 docker run --rm -v "$PROJ:/w" -w /w agos-build bash -c '

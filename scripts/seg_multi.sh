@@ -1,6 +1,6 @@
 #!/bin/bash
 # 跑 N 次密集互動 + segtrace,任一次崩就印 backtrace(beat heisenbug 機率性)。
-PROJ="/home/anr2/scummvm/elvira_cht/workplace"
+PROJ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 for i in 1 2 3 4; do
   docker run --rm -v "$PROJ:/work" -w /work agos-build bash -c "
     export XDG_RUNTIME_DIR=/tmp/xdg; mkdir -p /tmp/xdg; export SDL_AUDIODRIVER=dummy

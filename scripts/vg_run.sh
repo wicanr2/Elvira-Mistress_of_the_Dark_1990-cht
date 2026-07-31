@@ -1,5 +1,5 @@
 #!/bin/bash
-PROJ="/home/anr2/scummvm/elvira_cht/workplace"
+PROJ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 docker run --rm -v "$PROJ:/work" -w /work agos-build-vg bash -c '
   export XDG_RUNTIME_DIR=/tmp/xdg; mkdir -p /tmp/xdg; export SDL_AUDIODRIVER=dummy
   Xvfb :99 -screen 0 640x400x16 &>/dev/null & sleep 2
