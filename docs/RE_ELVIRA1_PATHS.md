@@ -10,7 +10,16 @@
 - **`getBoxSize`/`printBox`/`_boxBuffer` 全是 `AGOSEngine_Waxworks::` 專屬，Elvira 1 完全不碰** → Waxworks patch 那段略過。
 
 ## 2. verb / 動作 UI
-- Elvira 1 用 **`drawMenuStrip`(menus.cpp:71, 「Elvira 1 specific」)**：verb 字串來自 **MENU 資料檔**(`_menuBase`, `loadMenuFile` 讀 GAME_MENUFILE)，逐字 `windowPutChar` 畫出。**資料驅動，非硬編碼、非烘進 VGA 美術**。
+- ~~verb 字串來自 MENU 資料檔（`_menuBase`），逐字 `windowPutChar` 畫出，資料驅動。~~
+  **更正（2026-07-31 實測）：這條對 floppy DOS 版不成立。** `loadMenuFile` 只在
+  `getFileName(GAME_MENUFILE) != nullptr` 時才被呼叫（`agos.cpp:1086`），而這個版本的遊戲檔裡
+  **沒有 MENU 檔**（`run_game/` 只有 gamepc／tables／*.vga／*.snd），`_menuBase` 是 null，
+  `drawMenuStrip` 走不到。畫面右側的 OPEN／CLOSE／EXAMINE… **是烘進 VGA 的美術字**——
+  字體與遊戲文字字型明顯不同（同狀態列 STR／RES 那種裝飾字），改字串表無效。
+  → 中文化只能疊層覆蓋，且**必須是 hi-res 疊層**：原生 320×200 下每個動詞的判定框只有
+  37×7 px、行距 8px，中文縮到 7px 高會糊成一團（不是可讀性打折，是完全不可讀）。
+  「直接改一份中文美術圖替換」因此行不通；且對白／物品名／選單是執行期動態文字，
+  本來就烘不進美術，疊層機制無論如何要保留。
 - Elvira 1 **不觸及** `english_verb_names`（那是 Simon 專屬）；`setVerbText`/`clearName`/`displayName` 對 ELVIRA1 提早 return。
 - `menuFor_ww`/`menuFor_e2`/`doMenuStrip` 非 Elvira 1。
 
