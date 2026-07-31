@@ -80,11 +80,10 @@
 
 | 平台 | 檔案 | 配樂 | 備註 |
 |---|---|---|---|
+| **Linux** x86_64 | `.AppImage` | MT-32 / AdLib | 直接執行；遊戲檔放 AppImage 同目錄的 `elvira1-game/` 或 `~/.local/share/elvira1-cht/game/` |
 | **Linux** x86_64 | `.tar.gz` | MT-32 / AdLib | 執行 `play-elvira.sh`；MT-32 需自備 `MT32_*.ROM` 放 `game/` |
 | **Windows** x64 | `.zip` | AdLib/OPL | 雙擊 `play-elvira.bat`；帶全 DLL |
 | **macOS** universal | `.dmg` / `.tar.gz` | MT-32 / AdLib | Apple Silicon + Intel；右鍵→打開繞過 Gatekeeper，字型複製進遊戲夾 |
-
-| **Linux** x86_64 | `.AppImage` | MT-32 / AdLib | 直接執行；遊戲檔放同目錄 `elvira1-game/` 或 `~/.local/share/elvira1-cht/game/` |
 
 啟動器預設 `--scale-factor=3`（視窗 960×600），但**那只是預設值不是限制**——
 中文疊層的座標已改成與畫面倍率無關，放大、縮小、全螢幕、macOS Retina 高 DPI 都會自動對齊
