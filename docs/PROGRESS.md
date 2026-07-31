@@ -66,11 +66,14 @@
       - 重複載入時 `free` 舊的緩衝區(原本會洩漏)。
       - `chtDrawTitle` / `chtDrawBig5OnSurface` 的 dirty rect 四邊都 clamp,
         並在空矩形時直接 return。
-- [ ] **上游既有越界(待回報 ScummVM)**:ASan 掃到一顆在
-      `stretch200To240Nearest`(`backends/graphics/surfacesdl`,做 4:3 比例校正的函式),
-      `WRITE of size 1280` 越界。中文化 patch 沒碰這裡,且只在開啟 aspect ratio
-      correction 時走到 —— 本專案啟動器預設關閉,不影響玩家。
-      待辦:確認 vanilla ScummVM(無 patch)是否也重現,是的話回報上游。
+- [x] **釐清那顆越界屬於誰**(對照實驗已做):`stretch200To240Nearest`
+      (`backends/graphics/surfacesdl`,4:3 比例校正)`WRITE of size 1280` 越界。
+      同一 binary 對照:**疊層開啟時報、疊層關閉時乾淨、vanilla ScummVM 也乾淨**。
+      → 上游的程式碼,但由「中文化全程開著 overlay + aspect 校正」的組合觸發
+      (一般遊戲只在 GUI 選單時短暫開 overlay,不會每幀走到)。
+      啟動器預設關閉 aspect 校正,玩家不受影響。
+- [ ] **回報上游 ScummVM**:整理最小重現步驟(開 overlay + aspect ratio correction)
+      與 ASan 堆疊,送 issue 給 ScummVM。
 
 ### 其他(選配加值)
 - Waxworks 對等的 F8 除霧 / F6 給物(目前有 F7 無敵 + TAB 地圖)。
