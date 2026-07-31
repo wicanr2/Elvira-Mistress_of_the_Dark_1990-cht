@@ -1,5 +1,5 @@
 diff --git a/engines/agos/agos.cpp b/engines/agos/agos.cpp
-index af27f131..a9648f6e 100644
+index af27f131..0a53f293 100644
 --- a/engines/agos/agos.cpp
 +++ b/engines/agos/agos.cpp
 @@ -607,6 +607,20 @@ Common::Error AGOSEngine::init() {
@@ -67,7 +67,7 @@ index af27f131..a9648f6e 100644
  	}
  
  	setupGame();
-@@ -1061,6 +1087,26 @@ Common::Error AGOSEngine::go() {
+@@ -1061,6 +1087,28 @@ Common::Error AGOSEngine::go() {
  		loadMenuFile();
  	}
  
@@ -76,9 +76,11 @@ index af27f131..a9648f6e 100644
 +	_chtSubLang = 1;
 +	_chtBufSlot = 0;
 +	if (getGameType() == GType_ELVIRA1) {
-+		bool fontOk = chtLoadFont16(_cht, "elvira1_zh16.dcjk");   // 16x16 視窗文字主字型 + overlay 動詞面板
-+		chtLoadFont(_cht, "elvira1_zh24.dcjk");                    // 24x24 (可選, 大字/標題用)
-+		chtLoadFont14(_cht, "elvira1_zh14.dcjk");                  // 14x14 (可選, overlay 對白小字)
++		// 字形來源是倚天中文系統(ETEN 3.53)的原生點陣字 —— 1990 年 DOS 中文的原貌,
++		// 為該尺寸手工調過, 比 TTF 縮到 15/24px 更對味(縮小的向量字筆劃比例不對、複雜字糊)。
++		bool fontOk = chtLoadFont16(_cht, "elvira1_zh16.dcjk");   // 倚天 16x15: 視窗文字 + 對白層(細版, 複雜字才不黏)
++		chtLoadFont(_cht, "elvira1_zh24.dcjk");                    // 倚天 24x24 明體: 大字/標題/地圖
++		chtLoadFontBold(_cht, "elvira1_zh16b.dcjk");               // 倚天 16x15 加粗: 動詞面板(暗底上要對比)
 +		bool tabOk = chtLoadTable(_cht, "elvira1_zh.tab");
 +		if (fontOk && tabOk) {
 +			_chtActive = true;
@@ -169,7 +171,7 @@ index 6a8d2237..bb141d62 100644
  
  	byte *allocBlock(uint32 size);
 diff --git a/engines/agos/charset-fontdata.cpp b/engines/agos/charset-fontdata.cpp
-index 193986e3..8a894bc3 100644
+index 193986e3..8a97ee72 100644
 --- a/engines/agos/charset-fontdata.cpp
 +++ b/engines/agos/charset-fontdata.cpp
 @@ -22,12 +22,14 @@
@@ -187,7 +189,7 @@ index 193986e3..8a894bc3 100644
  
  namespace AGOS {
  
-@@ -2914,6 +2916,609 @@ static const byte english_pnFont[] = {
+@@ -2914,6 +2916,627 @@ static const byte english_pnFont[] = {
  	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
  };
  
@@ -510,36 +512,54 @@ index 193986e3..8a894bc3 100644
 +		{ 55, {0xaa,0xab,0xab,0x7e}},   // 物品 INV      box 0x74 y24
 +		{ 79, {0xaa,0x5a,0xbe,0xb9}},   // 武器 WEAPONS  box 0x75 y36
 +	};
-+	// 面板列距只有 16px(遊戲 8px), 用 14px 字留 2px 間隙, 不會與上下列糊在一起。
-+	const bool small = (_cht.font14 != nullptr);
-+	const int fw = small ? _cht.fontW14 : _cht.fontW16;
-+	const int fh = small ? _cht.fontH14 : _cht.fontH16;
-+	const int bpr = small ? _cht.fontBpr14 : _cht.fontBpr16;
-+	uint32 cWhite = fmt.RGBToColor(235, 235, 210);
++	// 字型是倚天中文系統(ETEN 3.53)的原生 16x15 點陣 —— 1990 年 DOS 中文的原貌就長這樣,
++	// 比 TTF 縮到這個尺寸更對味(TTF 縮小後筆劃比例不對、複雜字糊成一團)。
++	// 面板用「加粗版」: 倚天 15 點只有偏細明體, 字疊在深色面板上對比不足; 面板字少,
++	// 加粗後厚實好讀且複雜字仍不黏(對白反過來要細版, 見 chtTextLayerPut)。
++	// 面板列距 16px(遊戲 8px), 15px 高的字模剛好留 1px 間隙。
++	const bool bold = (_cht.fontBold != nullptr);
++	const int fw = bold ? _cht.fontWBold : _cht.fontW16;
++	const int fh = bold ? _cht.fontHBold : _cht.fontH16;
++	const int bpr = bold ? _cht.fontBprBold : _cht.fontBpr16;
++	// 非上游: 配色取自原版面板美術(把譯表移開跑英文版, 對面板區取樣直方圖得到)。
++	// 整個面板只有三色: 黑底 #000000、動詞字與花邊 #626141(暗橄欖)、
++	// 系統功能字 #C5C2A4(亮米白)。中文照抄這組語意分色, 面板才與原版美術融合;
++	// 原本一律用 (235,235,210) 白, 比原版亮一階、且失去「動詞 vs 系統功能」的分色。
++	uint32 cVerb   = fmt.RGBToColor(98, 97, 65);      // OPEN..THROW(與花邊同色系)
++	uint32 cBright = fmt.RGBToColor(197, 194, 164);   // PAUSE/SAVE/RESTORE、ROOM/INV/WEAPONS
 +	uint32 cBlack = fmt.RGBToColor(0, 0, 0);
 +	// 整塊黑底(涵蓋整個文字區, 保證升採後的英文美術字全被蓋掉, 個別 Y 稍偏也不露)。
 +	// 上下界貼齊「第一個/最後一個判定框」± 一點餘裕, 不可再往下吃 —— 否則會蓋掉
 +	// 狀態列右端的 EXP 數值(overlay y≈254-276)。
 +	// 右欄 OPEN..RESTORE: 判定框 y9..121(遊戲) → overlay 18..244, 取 16..246。
 +	// 左欄 ROOM/INV/WEAPONS: 判定框 y12..42 → overlay 24..84, 取 22..90。
-+	chtOvlFill(_chtOvlBuf, nullptr, 554, 16, 86, 230, cBlack);   // 右欄 OPEN..RESTORE
-+	chtOvlFill(_chtOvlBuf, nullptr, 6, 22, 84, 68, cBlack);      // 左欄 ROOM/INV/WEAPONS
++	// 黑底只蓋「文字帶」, 不碰兩側的鏈狀花邊 —— 花邊是原版面板美術的一部分,
++	// 蓋掉了中文面板就變成一塊死黑。花邊位置由英文原版逐欄統計非黑像素定出(基準座標):
++	//   右欄 花邊 544..551 / 文字 552..631 / 花邊 632..639
++	//   左欄 花邊 0..8     / 文字 9..87    / 花邊 88..97
++	chtOvlFill(_chtOvlBuf, nullptr, 552, 16, 80, 230, cBlack);   // 右欄 OPEN..RESTORE
++	chtOvlFill(_chtOvlBuf, nullptr, 9, 22, 78, 68, cBlack);      // 左欄 ROOM/INV/WEAPONS
 +	int nAll = ARRAYSIZE(kRight) + ARRAYSIZE(kLeft);
 +	for (int li = 0; li < nAll; li++) {
 +		bool left = (li >= (int)ARRAYSIZE(kRight));
 +		const VLabel &L = left ? kLeft[li - (int)ARRAYSIZE(kRight)] : kRight[li];
-+		// x 也對齊判定框中心: 右欄框 x277..313(overlay 554..627, 中心 591);
-+		// 左欄框 x6..42(overlay 12..85, 中心 49)。2 字寬 = 2*fw。
-+		int x0 = (left ? 49 : 591) - fw;
++		// x 置中於「文字帶」(不含花邊): 右欄 552..631 → 中心 592; 左欄 9..87 → 中心 48。
++		// 2 字寬 = 2*fw, 故起點 = 中心 - fw。
++		int x0 = (left ? 48 : 592) - fw;
 +		int y0 = L.cy - fh / 2;
++		// 原版的分色: 動詞(OPEN..THROW)是與花邊同色的暗橄欖, PAUSE/SAVE/RESTORE 與
++		// 左欄 ROOM/INV/WEAPONS 是亮米白。kRight 前 10 項為動詞, 其後 3 項為系統功能。
++		bool bright = left || (li >= 10);
++		uint32 cText = bright ? cBright : cVerb;
 +		// 畫 2 個 Big5 字(pass0 描邊 pass1 本體)
 +		for (int ci = 0; ci < 2; ci++) {
-+			const byte *g = small ? _cht.glyph14(L.b[ci * 2], L.b[ci * 2 + 1])
-+			                      : _cht.glyph16(L.b[ci * 2], L.b[ci * 2 + 1]);
++			const byte *g = bold ? _cht.glyphBold(L.b[ci * 2], L.b[ci * 2 + 1])
++			                     : _cht.glyph16(L.b[ci * 2], L.b[ci * 2 + 1]);
 +			if (!g)
 +				continue;
 +			int cx = x0 + ci * fw;
-+			chtOvlDrawGlyph(_chtOvlBuf, nullptr, g, fw, fh, bpr, cx, y0, cWhite, cBlack, true);
++			// 不描邊: 底本來就是純黑, 黑描邊沒有視覺作用, 反而會往外侵蝕一圈花邊。
++			chtOvlDrawGlyph(_chtOvlBuf, nullptr, g, fw, fh, bpr, cx, y0, cText, cBlack, false);
 +		}
 +	}
 +	// 無敵(F7)指示器: 遊戲區頂端疊「無敵模式」(16px, 亮黃 + 描邊 + 深底框, 任意背景皆可見)
@@ -724,15 +744,15 @@ index 193986e3..8a894bc3 100644
 +	memset(_chtTextCov, 0, (size_t)_chtOvlW * _chtOvlH);
 +}
 +
-+// 文字層寫入: 對白/敘述 CJK 改畫進 overlay 持久文字層(14px 小字, 壓縮格), 小巧清晰貼合對話框。
++// 文字層寫入: 對白/敘述 CJK 改畫進 overlay 持久文字層(倚天 16x15, 壓縮格 16x18), 貼合對話框。
 +// x,y = 原生 320x200 像素座標(x=window->x*8+textColumn*8, y=window->y+textRow*8)。
 +void AGOSEngine::chtTextLayerPut(WindowBlock *window, uint x, uint y, byte lead, byte trail) {
 +	if (!_chtTextLayer || !_chtTextCov)
 +		return;
-+	const byte *g = _cht.glyph14(lead, trail);
++	const byte *g = _cht.glyph16(lead, trail);
 +	if (!g)
 +		return;
-+	const int fw = _cht.fontW14, fh = _cht.fontH14, bpr = _cht.fontBpr14;
++	const int fw = _cht.fontW16, fh = _cht.fontH16, bpr = _cht.fontBpr16;
 +	Graphics::PixelFormat fmt = _system->getOverlayFormat();
 +	byte ti = chtReadableColor((byte)(window->textColor ? window->textColor : 15));
 +	uint32 col = fmt.RGBToColor(_currentPalette[ti * 3], _currentPalette[ti * 3 + 1], _currentPalette[ti * 3 + 2]);

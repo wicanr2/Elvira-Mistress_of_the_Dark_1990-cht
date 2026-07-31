@@ -143,7 +143,7 @@ jobs:
           set -e
           # 繁中字型/譯表放在 .app 旁的資料夾, 玩家需複製進「自己的 Elvira 遊戲夾」(引擎從遊戲夾載入)。
           mkdir -p 繁中字型
-          cp fonts/elvira1_zh14.dcjk fonts/elvira1_zh16.dcjk fonts/elvira1_zh24.dcjk \
+          cp fonts/elvira1_zh16b.dcjk fonts/elvira1_zh16.dcjk fonts/elvira1_zh24.dcjk \
              translations/elvira1_zh.tab 繁中字型/
           {
             printf '古堡禁地 (Elvira 1, 1990) 繁體中文版 — macOS (universal, Apple Silicon + Intel)\n'

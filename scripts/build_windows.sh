@@ -67,7 +67,7 @@ docker run --rm -v "$PROJ:/w" -w /w debian:bookworm-slim bash -c '
   cp dists/engine-data/fonts.dat dists/engine-data/fonts-cjk.dat "$OUT/data/" 2>/dev/null || true
 
   # 繁中字型 + 譯表
-  cp /w/fonts/elvira1_zh14.dcjk /w/fonts/elvira1_zh16.dcjk /w/fonts/elvira1_zh24.dcjk \
+  cp /w/fonts/elvira1_zh16b.dcjk /w/fonts/elvira1_zh16.dcjk /w/fonts/elvira1_zh24.dcjk \
      /w/translations/elvira1_zh.tab "$OUT/game/"
 
   printf "@echo off\r\ncd /d %%~dp0\r\nif not exist saves mkdir saves\r\nscummvm.exe -p game --themepath=data --extrapath=game --savepath=saves --music-driver=mt32 --scaler=normal --scale-factor=2 --no-aspect-ratio --auto-detect %%*\r\npause\r\n" > "$OUT/play-elvira.bat"

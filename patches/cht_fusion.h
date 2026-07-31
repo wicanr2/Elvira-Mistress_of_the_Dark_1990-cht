@@ -37,10 +37,12 @@ struct ChtFusion {
 	byte *font16 = nullptr;
 	int fontW16 = 0, fontH16 = 0, fontBpr16 = 0;
 	uint32 numGlyphs16 = 0;
-	// 對白小字型 (14x14, overlay 文字層對白/敘述用)
-	byte *font14 = nullptr;
-	int fontW14 = 0, fontH14 = 0, fontBpr14 = 0;
-	uint32 numGlyphs14 = 0;
+	// 加粗字型 (倚天 16x15 程式加粗, 動詞面板用)
+	// 倚天 15 點只有偏細的明體一種; 面板字少、疊在深色底上, 加粗才有對比。
+	// 對白反過來要細版 —— 密集長文加粗會讓「爵/籠/罩/鑰」這類複雜字黏成塊。
+	byte *fontBold = nullptr;
+	int fontWBold = 0, fontHBold = 0, fontBprBold = 0;
+	uint32 numGlyphsBold = 0;
 	// 譯表: floppy stringId -> Big5 字串
 	Common::HashMap<uint32, Common::String> table;
 	// 語音: floppy stringId -> CD speechId (Elvira 1 floppy 無語音, 保留欄位)
@@ -65,19 +67,19 @@ struct ChtFusion {
 		return font16 + (uint32)idx * fontBpr16 * fontH16;
 	}
 
-	// 14x14 對白字模版本
-	const byte *glyph14(byte lead, byte trail) const {
-		if (!font14) return nullptr;
+	// 加粗字模版本 (動詞面板)
+	const byte *glyphBold(byte lead, byte trail) const {
+		if (!fontBold) return nullptr;
 		int idx = chtBig5Index(lead, trail);
-		if (idx < 0 || (uint32)idx >= numGlyphs14) return nullptr;
-		return font14 + (uint32)idx * fontBpr14 * fontH14;
+		if (idx < 0 || (uint32)idx >= numGlyphsBold) return nullptr;
+		return fontBold + (uint32)idx * fontBprBold * fontHBold;
 	}
 
 };
 
 bool chtLoadFont(ChtFusion &fus, const char *filename);
 bool chtLoadFont16(ChtFusion &fus, const char *filename);
-bool chtLoadFont14(ChtFusion &fus, const char *filename);
+bool chtLoadFontBold(ChtFusion &fus, const char *filename);
 bool chtLoadTable(ChtFusion &fus, const char *filename);
 bool chtLoadVoiceMap(ChtFusion &fus, const char *filename);
 

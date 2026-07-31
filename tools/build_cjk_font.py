@@ -28,10 +28,14 @@ def big5_linear_index(lead, trail):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--size', type=int, default=24)
+    # 高度可與寬度不同: 面板列距 16px, 字模高 16 就零間隙、上下列會黏在一起
+    # (倚天原生是 16x15 才留得下 1px)。烘 TTF 當替代字型時要一併對齊這個尺寸。
+    ap.add_argument('--height', type=int, default=0, help='字模高度(預設同 --size)')
     ap.add_argument('--font', required=True)
     ap.add_argument('--out', required=True)
     a = ap.parse_args()
-    W = H = a.size
+    W = a.size
+    H = a.height if a.height else a.size
     bpr = (W + 7) // 8
     face = freetype.Face(a.font)
     face.set_pixel_sizes(W, H)
@@ -53,7 +57,7 @@ def main():
             ox = max(0, (W - gw) // 2)
             oy = max(0, (H - gh) // 2)
             # baseline 對齊: 用 bitmap_top 粗略垂直置中
-            base = a.size * 4 // 5
+            base = H * 4 // 5
             oy = max(0, base - face.glyph.bitmap_top)
             buf = bm.buffer
             any_px = False

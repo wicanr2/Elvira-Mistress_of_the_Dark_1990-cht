@@ -45,6 +45,23 @@ bash scripts/build_scummvm.sh                          # 重編
 cd build/scummvm-src && git diff HEAD -- engines/agos/ > ../../patches/agos-cht.patch
 ```
 
+**換字型（不必重編引擎）**
+```bash
+# 預設(可散布): Noto Sans CJK。注意高度要 15 不是 16 —— 面板列距 16px,
+# 字模高 16 會零間隙、上下列黏在一起。
+python3 tools/build_cjk_font.py --size 16 --height 15 --font <regular.ttc> --out fonts/elvira1_zh16.dcjk
+python3 tools/build_cjk_font.py --size 16 --height 15 --font <bold.ttc>    --out fonts/elvira1_zh16b.dcjk
+python3 tools/build_cjk_font.py --size 24                --font <regular.ttc> --out fonts/elvira1_zh24.dcjk
+
+# 倚天中文系統原生點陣字(更對味, 字模需自備, 見 NOTICE.md)
+python3 tools/build_eten_font.py --size 15 --std <stdfont.15> --spc <SPCFONT.15> --out fonts/elvira1_zh16.dcjk
+python3 tools/build_eten_font.py --size 15 --bold --std <stdfont.15> --spc <SPCFONT.15> --out fonts/elvira1_zh16b.dcjk
+python3 tools/build_eten_font.py --size 24 --std <stdfont.24> --spc <SPCFONT.24> --out fonts/elvira1_zh24.dcjk
+```
+三份字型的分工：`zh16` 對白內文（細）、`zh16b` 動詞面板（加粗，暗底要對比）、`zh24` 標題與地圖。
+`build_eten_font.py` 會自檢倚天索引（`idx=0` 必須是「一」），並印出 fallback 字數——
+**倚天涵蓋率正常時 fallback 應為 0**，一大批掉 fallback 通常是漏帶 `SPCFONT`（標點區）或索引錯。
+
 **headless 截圖驗證**
 ```bash
 bash scripts/capture.sh 0 18 shot     # [HARD] Xvfb x16 + SDL dummy + --scaler 2x(320x200 才填滿)

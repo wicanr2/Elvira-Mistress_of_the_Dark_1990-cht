@@ -34,7 +34,7 @@ docker run --rm -v "$PROJ:/w" -w /w agos-build bash -c '
     cp build/scummvm-src/dists/engine-data/fonts.dat build/scummvm-src/dists/engine-data/fonts-cjk.dat \
        "$APP/usr/share/scummvm/" 2>/dev/null || true
     # 繁中字型 + 譯表(GPL 衍生, 可散佈)放共用資源夾, AppRun 會用到
-    cp fonts/elvira1_zh14.dcjk fonts/elvira1_zh16.dcjk fonts/elvira1_zh24.dcjk \
+    cp fonts/elvira1_zh16b.dcjk fonts/elvira1_zh16.dcjk fonts/elvira1_zh24.dcjk \
        translations/elvira1_zh.tab "$APP/usr/share/elvira1-cht/"
     # icon
     convert -size 256x256 "radial-gradient:#4a1c1c-#0c0808" \
@@ -87,7 +87,7 @@ if [ ! -f "${GAME}/gamepc" ]; then
   exit 1
 fi
 # 繁中字型/譯表須與遊戲原檔同夾(冪等複製, 不覆蓋玩家可能自備的版本)
-for f in elvira1_zh14.dcjk elvira1_zh16.dcjk elvira1_zh24.dcjk elvira1_zh.tab; do
+for f in elvira1_zh16b.dcjk elvira1_zh16.dcjk elvira1_zh24.dcjk elvira1_zh.tab; do
   [ -f "${GAME}/${f}" ] || cp "${CHT}/${f}" "${GAME}/"
 done
 SAVE="${XDG_DATA_HOME:-$HOME/.local/share}/elvira1-cht/saves"; mkdir -p "$SAVE"

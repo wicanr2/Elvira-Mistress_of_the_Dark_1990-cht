@@ -57,5 +57,13 @@ chown 1000:1000 /work/screenshots/qa_${TAG}.png /work/screenshots/qa_${TAG}.log
 " >/dev/null 2>&1
 
 [ -f "screenshots/qa_${TAG}.png" ] || { echo "FAIL($TAG): 沒有產出截圖"; exit 1; }
+
+# ScummVM 偶爾在 GUI 階段(引擎啟動前)噴 SDL_BlitSurface failed 然後停在錯誤對話框,
+# 截出來是全黑 → 這是環境競態不是程式問題(同一組參數重跑就正常)。偵測到就自動重試一次,
+# 否則會誤報成佈局 FAIL。
+if grep -q "SDL_BlitSurface failed" "screenshots/qa_${TAG}.log" 2>/dev/null; then
+	echo "  (SDL 啟動競態, 重試一次)"
+	exec "$0" "$TAG" "$SCALE" "$W" "$H" "$GFX"
+fi
 echo "OK: screenshots/qa_${TAG}.png ($(du -h "screenshots/qa_${TAG}.png" | cut -f1))"
 grep -E "^CHTOVL" "screenshots/qa_${TAG}.log" | head -3

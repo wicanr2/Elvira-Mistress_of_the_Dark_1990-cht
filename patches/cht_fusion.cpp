@@ -59,8 +59,8 @@ bool chtLoadFont16(ChtFusion &fus, const char *filename) {
 	return true;
 }
 
-// 載入 14x14 DCJK 對白字型到 fus.font14 (overlay 文字層對白/敘述用)
-bool chtLoadFont14(ChtFusion &fus, const char *filename) {
+// 載入加粗 DCJK 字型到 fus.fontBold (動詞面板用; 倚天 16x15 程式加粗版)
+bool chtLoadFontBold(ChtFusion &fus, const char *filename) {
 	Common::File f;
 	if (!f.open(filename))
 		return false;
@@ -69,20 +69,20 @@ bool chtLoadFont14(ChtFusion &fus, const char *filename) {
 		return false;
 	if (memcmp(hdr, "DCJK", 4) != 0)
 		return false;
-	fus.fontW14 = hdr[5];
-	fus.fontH14 = hdr[6];
-	fus.fontBpr14 = hdr[7];
-	fus.numGlyphs14 = READ_LE_UINT32(hdr + 11);
-	uint32 dataSize = fus.numGlyphs14 * fus.fontBpr14 * fus.fontH14;
-	fus.font14 = (byte *)malloc(dataSize);
-	if (!fus.font14)
+	fus.fontWBold = hdr[5];
+	fus.fontHBold = hdr[6];
+	fus.fontBprBold = hdr[7];
+	fus.numGlyphsBold = READ_LE_UINT32(hdr + 11);
+	uint32 dataSize = fus.numGlyphsBold * fus.fontBprBold * fus.fontHBold;
+	fus.fontBold = (byte *)malloc(dataSize);
+	if (!fus.fontBold)
 		return false;
-	if (f.read(fus.font14, dataSize) != dataSize) {
-		free(fus.font14);
-		fus.font14 = nullptr;
+	if (f.read(fus.fontBold, dataSize) != dataSize) {
+		free(fus.fontBold);
+		fus.fontBold = nullptr;
 		return false;
 	}
-	debug(0, "CHT: dialogue font %s loaded (%dx%d, %u glyphs)", filename, fus.fontW14, fus.fontH14, fus.numGlyphs14);
+	debug(0, "CHT: panel bold font %s loaded (%dx%d, %u glyphs)", filename, fus.fontWBold, fus.fontHBold, fus.numGlyphsBold);
 	return true;
 }
 

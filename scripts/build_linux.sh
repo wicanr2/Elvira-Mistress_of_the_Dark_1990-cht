@@ -23,7 +23,7 @@ docker run --rm -v "$PROJ:/w" -w /w agos-build bash -c '
   done
   cp build/scummvm-src/dists/engine-data/fonts.dat build/scummvm-src/dists/engine-data/fonts-cjk.dat "$OUT/data/" 2>/dev/null || true
   # 繁中字型+譯表(GPL 衍生, 可散佈)。14px=對白 16px=面板 24px=標題/地圖
-  cp fonts/elvira1_zh14.dcjk fonts/elvira1_zh16.dcjk fonts/elvira1_zh24.dcjk translations/elvira1_zh.tab "$OUT/game/"
+  cp fonts/elvira1_zh16b.dcjk fonts/elvira1_zh16.dcjk fonts/elvira1_zh24.dcjk translations/elvira1_zh.tab "$OUT/game/"
   # 啟動器
   cat > "$OUT/play-elvira.sh" <<"EOF"
 #!/bin/bash

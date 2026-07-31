@@ -55,3 +55,9 @@ dist-macos-artifact/
 
 # appimagetool 等打包工具(大 binary, 不入庫; 從姊妹專案複製或另抓)
 .toolcache/
+
+# 倚天中文系統(ETEN 3.53)原始字模: 有版權, 不入庫(工具在 tools/build_eten_font.py, 需自備)
+tools/assets/eten/
+
+# 倚天烘出來的字模重製品也不入庫(公開版走開源字型, 見 NOTICE.md)
+fonts/eten/
