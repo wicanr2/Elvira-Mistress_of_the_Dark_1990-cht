@@ -48,20 +48,29 @@
 `ow/gw` 整數除法讓取樣索引超出 320×200)。該顆已修,但**同類風險應該系統性掃一遍**,
 而不是等玩家一顆一顆撞出來:
 
-- [ ] **ASan 全流程掃描**:用 `-fsanitize=address` 版 binary 跑完整遊戲流程
-      (各倍率 / aspect 校正 / 地圖 / 無敵 / 存讀檔 / 模態選單 / 場景切換 / 長時間掛機),
-      收集所有 heap-buffer-overflow。已驗證這個手法有效——修復前的 binary 一跑就報,
-      堆疊與玩家 crash log 完全一致。
-- [ ] **cht 程式碼逐點審查**:patch 內有 52 處直接記憶體操作
-      (`memset`/`memmove`/`malloc`/索引寫入),集中在 `chtOverlayCompose`、
-      `chtTextLayerClear/Scroll`、`chtClearMenuLayer`、字型載入。每一處確認:
-      索引來源是否可能超出 buffer、clamp 是否在算完之後才做、
-      尺寸變動時是否重新配置。
-- [ ] **防禦性下限**:繪製類函式一律以「實際 buffer 尺寸」為準做最後 clamp,
-      不信任呼叫端傳進來的座標;字型 glyph 索引也要對 `numGlyphs` 驗界。
-- [ ] **上游 AGOS 既有越界**:`agos-dos-hires-backbuf-overflow` 記錄過 AGOS 本身
-      有 pre-existing 繪圖越界(vanilla 撞到無害記憶體所以沒人發現)。ASan 掃描時
-      要分辨哪些是上游的、哪些是中文化引入的;上游的評估是否值得回報 ScummVM。
+- [x] **ASan 全流程掃描**(進行中,已完成主要情境):x4 高倍率、OpenGL 後端(overlay 4 bytes/px)
+      各跑一輪 45 回合密集互動(面板點擊 / 地圖開關 / 無敵 / 存檔選單 / 場景切換),
+      **兩者皆乾淨**。修復前的對照組一跑就報 `heap-buffer-overflow @ chtOverlayCompose`,
+      堆疊與玩家 crash log 完全一致 → 手法有效。
+      唯一剩下的一顆在上游 `stretch200To240Nearest`(見下)。
+- [x] **cht 程式碼逐點審查**:52 處記憶體操作全數過一遍。疊層繪製類(`chtOvlFill`/
+      `chtOvlBlitGlyph`/`chtDrawMap`/`chtTextLayerPut`)都收斂到同一個有 clamp 的
+      填色函式;`chtTextLayerClear/Scroll` 的矩形先算後 clamp、長度為負時不動作;
+      直繪到遊戲 surface 的兩條路徑(`chtDrawBig5OnSurface`/`chtDrawTitle`)逐像素
+      檢查 `screen->w/h`。找到並修掉兩處:**字型載入沒驗 header**(見下)、
+      **dirty rect 只 clamp 了兩邊**。
+- [x] **防禦性下限**:
+      - 字型載入(三個函式)收斂成共用實作 + header 驗證:尺寸自洽、字數合理、
+        乘法不溢位、檔案裝得下,任一不成立就略過並印 warning。
+        實測餵截斷檔與壞 header 檔,遊戲不再崩潰、只是該字型不啟用。
+      - 重複載入時 `free` 舊的緩衝區(原本會洩漏)。
+      - `chtDrawTitle` / `chtDrawBig5OnSurface` 的 dirty rect 四邊都 clamp,
+        並在空矩形時直接 return。
+- [ ] **上游既有越界(待回報 ScummVM)**:ASan 掃到一顆在
+      `stretch200To240Nearest`(`backends/graphics/surfacesdl`,做 4:3 比例校正的函式),
+      `WRITE of size 1280` 越界。中文化 patch 沒碰這裡,且只在開啟 aspect ratio
+      correction 時走到 —— 本專案啟動器預設關閉,不影響玩家。
+      待辦:確認 vanilla ScummVM(無 patch)是否也重現,是的話回報上游。
 
 ### 其他(選配加值)
 - Waxworks 對等的 F8 除霧 / F6 給物(目前有 F7 無敵 + TAB 地圖)。
