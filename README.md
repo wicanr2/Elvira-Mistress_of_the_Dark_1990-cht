@@ -7,6 +7,8 @@
 <p align="center">
   <img src="docs/img/zh_title.png" width="480" alt="古堡禁地 片頭標題（ELVIRA 遊戲名畫面疊繁中「古堡禁地」）">
   <br><em>片頭 ELVIRA 遊戲名畫面，疊上繁中標題「古堡禁地」</em>
+  <br><sub>本頁截圖皆為 <b>倚天中文系統點陣字</b>（1990 年 DOS 中文的字形原貌）。倚天字模有版權不隨庫散布，
+  Release 內建 Noto Sans CJK 烘的同尺寸版本；自備字模者一行指令即可換上，見 <a href="NOTICE.md">NOTICE.md</a>。</sub>
 </p>
 
 ## ▶ 推廣片
@@ -42,7 +44,7 @@
 
 <p align="center">
   <img src="docs/img/zh_panel_npc.png" width="460" alt="衛兵隊長場景:中文指令面板 + 對白 + NPC 特寫">
-  <br><em>衛兵隊長辦公室：左右指令面板全中文（房間／物品／武器・開啟／關閉／檢視…）、對白「大步走進衛兵隊長的辦公室」</em>
+  <br><em>城堡庭院：左右指令面板全中文（房間／物品／武器・開啟／關閉／上鎖／檢視…），敘述逐字浮現「突然，你的肩膀從背後被粗暴地一把抓住」</em>
 </p>
 
 <p align="center">
