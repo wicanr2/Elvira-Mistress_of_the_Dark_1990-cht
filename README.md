@@ -210,6 +210,7 @@ build/scummvm-src/scummvm -p run_game --auto-detect --music-driver=mt32
 
 | 文件 | 內容 |
 |---|---|
+| [`docs/AGOS_PITFALLS.md`](docs/AGOS_PITFALLS.md) | **AGOS 引擎中文化踩過的坑總覽** —— 疊層座標／越界崩潰／字型／patch 維護／平台打包,每條含根因與驗證方法 |
 | [`docs/DEV_SETUP.md`](docs/DEV_SETUP.md) | 開發環境、改譯文重烘字型、改引擎重生 patch、headless 驗證、打包 |
 | [`docs/RESEARCH.md`](docs/RESEARCH.md) | 遊戲背景考據、六把鑰匙攻略與當年攻略來源 |
 | [`docs/MANUAL_INDEX.md`](docs/MANUAL_INDEX.md) | 軟體世界珍藏版 118 官方手冊要點索引 |

@@ -1179,10 +1179,10 @@ index 3cb73123..193d8e4e 100644
  			uint8 ptch = 16;
  			uint16 *dst1 = &((uint16*)_mouseData)[16 * 16 * 2 - 1];
 diff --git a/engines/agos/draw.cpp b/engines/agos/draw.cpp
-index 944797f9..9145fac8 100644
+index 944797f9..84902111 100644
 --- a/engines/agos/draw.cpp
 +++ b/engines/agos/draw.cpp
-@@ -842,6 +842,27 @@ void AGOSEngine::displayScreen() {
+@@ -842,6 +842,31 @@ void AGOSEngine::displayScreen() {
  
  	updateBackendSurface();
  
@@ -1200,7 +1200,11 @@ index 944797f9..9145fac8 100644
 +	// 升採 2x 進 640x400 overlay, 並在其上畫 16px 動詞面板中文(升採後行距 17px 可清晰容納 16px)。
 +	// 遊戲渲染路徑完全不動 → 繞過 PC98 dual-layer 的 layout heisenbug crash(見 chtOverlayCompose)。
 +	if (_chtActive && getGameType() == GType_ELVIRA1 && _chtTitleDone) {
-+		if (!_chtOverlayOn) {
++		// 非上游: 每幀確認 overlay 仍是開著的, 不能只在第一次開。
++		// 玩家縮放視窗 / 切全螢幕時 backend 會重建圖形狀態並把 overlay 關掉,
++		// 舊寫法只看自己的 _chtOverlayOn 旗標(一設就不再管), overlay 被關掉後
++		// 中文就永久消失、要重開遊戲才會回來(玩家 issue #2 的「縮放畫面後中文字會消失」)。
++		if (!_chtOverlayOn || !_system->isOverlayVisible()) {
 +			_system->showOverlay(false);
 +			_chtOverlayOn = true;
 +		}
