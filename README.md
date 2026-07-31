@@ -16,11 +16,13 @@
 實機畫面 + 原版 MT-32 配樂，帶你看它說中文的樣子：
 
 <p align="center">
-  <a href="https://youtu.be/iTCZQFmdKAo">
-    <img src="https://img.youtube.com/vi/iTCZQFmdKAo/hqdefault.jpg" width="480" alt="古堡禁地 繁體中文版 推廣片"><br>
-    ▶ 在 YouTube 觀看
+  <a href="../../releases/latest">
+    <img src="docs/img/zh_dialogue_3line.png" width="480" alt="古堡禁地 繁體中文版 推廣片"><br>
+    ▶ 下載推廣片 <code>Elvira1-CHT-promo.mp4</code>（Releases 附件，78 秒）
   </a>
 </p>
+
+> YouTube 上那支 [舊版推廣片](https://youtu.be/iTCZQFmdKAo) 錄於字形換成倚天之前，畫面是舊字型。
 
 ---
 
