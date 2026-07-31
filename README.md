@@ -84,7 +84,11 @@
 | **Windows** x64 | `.zip` | AdLib/OPL | 雙擊 `play-elvira.bat`；帶全 DLL |
 | **macOS** universal | `.dmg` / `.tar.gz` | MT-32 / AdLib | Apple Silicon + Intel；右鍵→打開繞過 Gatekeeper，字型複製進遊戲夾 |
 
-啟動器已鎖 `--scale-factor=2`（繁中 overlay 疊層為 640×400 設計）；想放大請用 ScummVM 全螢幕。
+| **Linux** x86_64 | `.AppImage` | MT-32 / AdLib | 直接執行；遊戲檔放同目錄 `elvira1-game/` 或 `~/.local/share/elvira1-cht/game/` |
+
+啟動器預設 `--scale-factor=3`（視窗 960×600），但**那只是預設值不是限制**——
+中文疊層的座標已改成與畫面倍率無關，放大、縮小、全螢幕、macOS Retina 高 DPI 都會自動對齊
+（2026-07-31 修正，見 [`docs/BUGFIX_NOTES.md`](docs/BUGFIX_NOTES.md) 第六節）。
 
 > 三平台皆自同一份 `agos-cht.patch` 源碼編譯：Linux（docker）、Windows（mingw 交叉編）、macOS（GitHub Actions，`macos-14` + Rosetta + 自編 SDL2 出 universal）。
 

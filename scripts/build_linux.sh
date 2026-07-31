@@ -29,10 +29,12 @@ docker run --rm -v "$PROJ:/w" -w /w agos-build bash -c '
 #!/bin/bash
 HERE="$(cd "$(dirname "$0")" && pwd)"
 export LD_LIBRARY_PATH="$HERE/lib:$LD_LIBRARY_PATH"
-# [重要] 鎖 --scale-factor=2:繁中 overlay 疊層(面板/對白)座標為 640x400 設計, 需 2x 才對齊。
+# 預設 --scale-factor=3(視窗 960x600, 現代螢幕舒服)。這只是預設值不是限制 ——
+# 疊層座標自 2026-07-31 起改為「基準空間 640x400 + 區間映射」, 與 overlay 實際尺寸無關,
+# 玩家改倍率、全螢幕、retina 高 DPI 都會自動對齊(見 docs/BUGFIX_NOTES.md 第六節)。
 # 想放大用 ScummVM 全螢幕(它縮放最終 640x400 影像、疊層仍對齊)。
 "$HERE/bin/scummvm" -p "$HERE/game" --themepath="$HERE/data" --extrapath="$HERE/game" \
-  --savepath="$HERE/saves" --music-driver="${ELVIRA_MUSIC:-adlib}" --scaler=normal --scale-factor=2 \
+  --savepath="$HERE/saves" --music-driver="${ELVIRA_MUSIC:-adlib}" --scaler=normal --scale-factor=3 \
   --no-aspect-ratio --auto-detect "$@"
 EOF
   chmod +x "$OUT/play-elvira.sh"

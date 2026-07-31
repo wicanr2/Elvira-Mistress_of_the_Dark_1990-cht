@@ -70,14 +70,14 @@ docker run --rm -v "$PROJ:/w" -w /w debian:bookworm-slim bash -c '
   cp /w/fonts/elvira1_zh16b.dcjk /w/fonts/elvira1_zh16.dcjk /w/fonts/elvira1_zh24.dcjk \
      /w/translations/elvira1_zh.tab "$OUT/game/"
 
-  printf "@echo off\r\ncd /d %%~dp0\r\nif not exist saves mkdir saves\r\nscummvm.exe -p game --themepath=data --extrapath=game --savepath=saves --music-driver=mt32 --scaler=normal --scale-factor=2 --no-aspect-ratio --auto-detect %%*\r\npause\r\n" > "$OUT/play-elvira.bat"
+  printf "@echo off\r\ncd /d %%~dp0\r\nif not exist saves mkdir saves\r\nscummvm.exe -p game --themepath=data --extrapath=game --savepath=saves --music-driver=mt32 --scaler=normal --scale-factor=3 --no-aspect-ratio --auto-detect %%*\r\npause\r\n" > "$OUT/play-elvira.bat"
 
   # ── 引擎版(patch-only, 可公開): 只有引擎 + 字型 ──
   # 註: 沒有 MT-32 ROM 時, ScummVM 會跳「MT 32 emulator cannot be used」對話框要玩家按 OK,
   # 所以公開版預設走 AdLib/OPL, 另附一支 MT-32 啟動器給有 ROM 的玩家。
   ENG=/tmp/古堡禁地-CHT-windows-x64; rm -rf "$ENG"; cp -r "$OUT" "$ENG"
-  printf "@echo off\r\ncd /d %%~dp0\r\nif not exist saves mkdir saves\r\nscummvm.exe -p game --themepath=data --extrapath=game --savepath=saves --music-driver=adlib --scaler=normal --scale-factor=2 --no-aspect-ratio --auto-detect %%*\r\npause\r\n" > "$ENG/play-elvira.bat"
-  printf "@echo off\r\ncd /d %%~dp0\r\nif not exist saves mkdir saves\r\nscummvm.exe -p game --themepath=data --extrapath=game --savepath=saves --music-driver=mt32 --scaler=normal --scale-factor=2 --no-aspect-ratio --auto-detect %%*\r\npause\r\n" > "$ENG/play-elvira-mt32.bat"
+  printf "@echo off\r\ncd /d %%~dp0\r\nif not exist saves mkdir saves\r\nscummvm.exe -p game --themepath=data --extrapath=game --savepath=saves --music-driver=adlib --scaler=normal --scale-factor=3 --no-aspect-ratio --auto-detect %%*\r\npause\r\n" > "$ENG/play-elvira.bat"
+  printf "@echo off\r\ncd /d %%~dp0\r\nif not exist saves mkdir saves\r\nscummvm.exe -p game --themepath=data --extrapath=game --savepath=saves --music-driver=mt32 --scaler=normal --scale-factor=3 --no-aspect-ratio --auto-detect %%*\r\npause\r\n" > "$ENG/play-elvira-mt32.bat"
   printf "\xEF\xBB\xBF古堡禁地 (Elvira 1, 1990) 繁體中文版 Windows\r\n\r\n1. 把合法擁有的 Elvira Floppy/DOS 全部檔案複製進 game\\\\ 資料夾。\r\n2. 雙擊 play-elvira.bat 遊玩(AdLib/OPL 配樂)。\r\n3. 想要原版 MT-32 配樂: 把 MT32_CONTROL.ROM / MT32_PCM.ROM 放進 game\\\\,\r\n   改用 play-elvira-mt32.bat 啟動。\r\n\r\n熱鍵: F7 無敵, TAB 地圖; 存檔 Alt+數字, 讀檔 Ctrl+數字。\r\n" > "$ENG/README.txt"
   ( cd /tmp && rm -f /w/dist-all/古堡禁地-CHT-windows-x64.zip && zip -qr /w/dist-all/古堡禁地-CHT-windows-x64.zip "古堡禁地-CHT-windows-x64" )
 

@@ -95,7 +95,7 @@ SAVE="${XDG_DATA_HOME:-$HOME/.local/share}/elvira1-cht/saves"; mkdir -p "$SAVE"
 if [ -f "${GAME}/MT32_CONTROL.ROM" ] || [ -f "${GAME}/CM32L_CONTROL.ROM" ]; then MUS=mt32; else MUS=adlib; fi
 exec "${HERE}/usr/bin/scummvm" -p "$GAME" \
      --themepath="$DATA" --extrapath="$GAME" --savepath="$SAVE" \
-     --music-driver="$MUS" --scaler=normal --scale-factor=2 --no-aspect-ratio --auto-detect "$@"
+     --music-driver="$MUS" --scaler=normal --scale-factor=3 --no-aspect-ratio --auto-detect "$@"
 EOF
   chmod +x "$APP/AppRun"
   build_one "$APP" "古堡禁地-CHT-x86_64.AppImage"
@@ -116,7 +116,7 @@ GAME="${HERE}/usr/share/elvira1-game"
 SAVE="${XDG_DATA_HOME:-$HOME/.local/share}/elvira1-cht/saves"; mkdir -p "$SAVE"
 exec "${HERE}/usr/bin/scummvm" -p "$GAME" \
      --themepath="$DATA" --extrapath="$GAME" --savepath="$SAVE" \
-     --music-driver=mt32 --scaler=normal --scale-factor=2 --no-aspect-ratio --auto-detect "$@"
+     --music-driver=mt32 --scaler=normal --scale-factor=3 --no-aspect-ratio --auto-detect "$@"
 EOF
   chmod +x "$APP/AppRun"
   build_one "$APP" "古堡禁地-CHT-FULL-x86_64.AppImage"
