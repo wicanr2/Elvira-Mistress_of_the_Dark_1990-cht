@@ -61,3 +61,4 @@ tools/assets/eten/
 
 # 倚天烘出來的字模重製品也不入庫(公開版走開源字型, 見 NOTICE.md)
 fonts/eten/
+build/verify-src/
