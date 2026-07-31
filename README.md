@@ -16,13 +16,13 @@
 實機畫面 + 原版 MT-32 配樂，帶你看它說中文的樣子：
 
 <p align="center">
-  <a href="../../releases/latest">
-    <img src="docs/img/zh_dialogue_3line.png" width="480" alt="古堡禁地 繁體中文版 推廣片"><br>
-    ▶ 下載推廣片 <code>Elvira1-CHT-promo.mp4</code>（Releases 附件，78 秒）
+  <a href="https://youtu.be/ny5p6eKh8JE">
+    <img src="https://img.youtube.com/vi/ny5p6eKh8JE/hqdefault.jpg" width="480" alt="古堡禁地 繁體中文版 推廣片"><br>
+    ▶ 在 YouTube 觀看（78 秒，倚天字形 + MT-32 原版配樂）
   </a>
 </p>
 
-> YouTube 上那支 [舊版推廣片](https://youtu.be/iTCZQFmdKAo) 錄於字形換成倚天之前，畫面是舊字型。
+> 也可到 [Releases](../../releases/latest) 下載影片原檔 `Elvira1-CHT-promo.mp4`。
 
 ---
 
@@ -170,7 +170,7 @@ SCUMM 系遊戲丟字型檔就能中文化，**AGOS 不行**——它的文字�
 **最終方案**：遊戲維持原生 320×200（穩定），中文改走兩條乾淨的路：
 
 - **自建 CJK 直繪**：`chtDrawBig5OnSurface` 直接在 320×200 畫 16×16 Big5（帶描邊）。
-- **ScummVM overlay 層當 hi-res compositor**（清晰的關鍵）：進遊戲後把穩定的 320×200 畫面**升採 2× 進 640×400 的 overlay 層**，在其上畫 **16px 動詞面板中文**與 **14px 對白**——**完全不碰遊戲渲染 buffer，繞過崩潰根因**。密集的動詞面板（原生 40px 欄、行距 8.5px 塞不下中文）在升採後行距 17px，16px 中文清晰容納。對白用 overlay 持久文字層，隨視窗清除／捲動同步。
+- **ScummVM overlay 層當 hi-res compositor**（清晰的關鍵）：進遊戲後把穩定的 320×200 畫面**升採 2× 進 640×400 的 overlay 層**，在其上畫**動詞面板中文**與**對白**（倚天 16×15 點陣字，面板加粗版、對白細版）——**完全不碰遊戲渲染 buffer，繞過崩潰根因**。密集的動詞面板（原生 40px 欄、行距 8.5px 塞不下中文）在升採後行距 16px，15px 高的字模剛好容納並留 1px 間隙。對白用 overlay 持久文字層，隨視窗清除／捲動同步。
 
 ### 面板與字形
 
