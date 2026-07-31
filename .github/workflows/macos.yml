@@ -152,7 +152,9 @@ jobs:
             printf '2. 把你合法擁有的 Elvira (Floppy/DOS) 全部檔案放進一個資料夾(以下稱「遊戲夾」)。\n'
             printf '3. [重要] 把本包「繁中字型/」內的 4 個檔複製進你的「遊戲夾」(要和 gamepc/tables01 等原檔同夾, 引擎才載得到中文)。\n'
             printf '4. 想要 MT-32 原版配樂: 也把 MT32_CONTROL.ROM / MT32_PCM.ROM 放進遊戲夾。\n'
-            printf '5. 開 ScummVM.app → Add Game → 指向遊戲夾 → Graphics 設 Scaler=Normal, Scale=2x(繁中疊層為 640x400 設計;放大用全螢幕)。\n'
+            printf '5. 開 ScummVM.app → Add Game → 指向遊戲夾即可開玩。\n'
+            printf '   畫面倍率隨你設(Scale 2x/3x/4x、全螢幕都行),Retina 高 DPI 也正常 ——\n'
+            printf '   中文疊層的座標與畫面倍率無關(2026-07-31 修正;先前版本在 Retina 下中文會擠到左上角)。\n'
             printf '熱鍵: F7 無敵, TAB 地圖; 存檔 Alt+數字, 讀檔 Ctrl+數字。\n'
           } > 使用說明.txt
 
