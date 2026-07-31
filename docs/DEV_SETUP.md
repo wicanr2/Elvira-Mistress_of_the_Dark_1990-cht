@@ -42,7 +42,17 @@ python3 tools/build_translation.py translations/zh.tsv run_game/elvira1_zh.tab
 **改引擎 → 重生 patch**
 ```bash
 bash scripts/build_scummvm.sh                          # 重編
-cd build/scummvm-src && git diff HEAD -- engines/agos/ > ../../patches/agos-cht.patch
+cd build/scummvm-src
+# [必要] cht_fusion.{h,cpp} 是新增檔案(upstream 沒有), 是 untracked ——
+# 少了這步 git diff 收不到它們, patch 少掉兩個新檔。本機打包用現成 build 樹看不出來,
+# 但 CI 從 pristine v2.9.1 套 patch 會 fatal error: 'agos/cht_fusion.h' file not found。
+git add -N engines/agos/cht_fusion.cpp engines/agos/cht_fusion.h
+git diff HEAD -- engines/agos/ > ../../patches/agos-cht.patch
+grep -c "new file mode" ../../patches/agos-cht.patch   # 應為 2
+
+# 驗證能套到乾淨的 v2.9.1(CI 做的事, 別等 CI 才發現)
+git archive HEAD | tar -x -C /tmp/pristine && cd /tmp/pristine
+git apply --whitespace=nowarn --check <patch>
 ```
 
 **換字型（不必重編引擎）**
