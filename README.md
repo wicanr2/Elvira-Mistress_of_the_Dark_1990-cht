@@ -218,6 +218,7 @@ build/scummvm-src/scummvm -p run_game --auto-detect --music-driver=mt32
 | [`docs/MANUAL_SPELLBOOK.md`](docs/MANUAL_SPELLBOOK.md) | **手冊全文**：〈愛梅達的魔法書〉25 道配方 + 附錄一法術說明 + 附錄二提示 + 材料原文對照 |
 | [`docs/RE_ELVIRA1_PATHS.md`](docs/RE_ELVIRA1_PATHS.md) | AGOS Elvira 1 文字/UI 路徑逆向、崩潰與 overlay hi-res 解法 |
 | [`docs/COPY_PROTECTION.md`](docs/COPY_PROTECTION.md) | **防拷靜態分析**：Elvira 1 無引擎防拷檢查點、`_copyProtection=false` 為 no-op、實測不擋玩家 |
+| [`docs/BUG_002VGA_ZONE0.md`](docs/BUG_002VGA_ZONE0.md) | **`Can't load 002.VGA` 追查報告**：撞牆就中止的完整分析——遊戲腳本的條件分派缺預設分支導致畫面編號為 0，反組譯過程、修法、驗證與有效性威脅 |
 | [`docs/BUGFIX_NOTES.md`](docs/BUGFIX_NOTES.md) | **疊層對齊除錯**：動詞標籤與點擊判定框錯位、模態選單在疊層下隱形、選單中文化 |
 | [`docs/PROGRESS.md`](docs/PROGRESS.md) | 各階段進度紀錄 |
 | [`translations/glossary.md`](translations/glossary.md) | 150+ 條譯名對照（角色/地點/法術/料理/道具/怪物）|
@@ -226,6 +227,7 @@ build/scummvm-src/scummvm -p run_game --auto-detect --music-driver=mt32
 
 ## 致謝與來源
 
+- **問題回報：[@wesley316-Guybrush](https://github.com/wesley316-Guybrush)** —— 玩一陣子當機、Retina 下中文錯位、滑鼠游標消失、撞牆就中止，四個問題都是靠他提供的 crash log、debug 輸出、兩種顯示後端的對照與標出位置的錄影才定位出來的。追查全紀錄見 [`docs/BUG_002VGA_ZONE0.md`](docs/BUG_002VGA_ZONE0.md) 與 [`docs/AGOS_PITFALLS.md`](docs/AGOS_PITFALLS.md)。
 - 台灣官方中文：**軟體世界珍藏版 118《古堡禁地》**（1991，智冠／軟體世界，高雄）。文字編輯：謝明奇；美工編輯：郭寶寶。
 - 手冊掃描保存：**骨灰集散地「軟體世界說明書補完計畫」**（boneash.oldgame.tw）。
 - 引擎：[ScummVM](https://www.scummvm.org/) AGOS（`GType_ELVIRA1`）。
