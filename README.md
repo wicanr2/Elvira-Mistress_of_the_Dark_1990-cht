@@ -218,6 +218,7 @@ build/scummvm-src/scummvm -p run_game --auto-detect --music-driver=mt32
 | [`docs/MANUAL_SPELLBOOK.md`](docs/MANUAL_SPELLBOOK.md) | **手冊全文**：〈愛梅達的魔法書〉25 道配方 + 附錄一法術說明 + 附錄二提示 + 材料原文對照 |
 | [`docs/RE_ELVIRA1_PATHS.md`](docs/RE_ELVIRA1_PATHS.md) | AGOS Elvira 1 文字/UI 路徑逆向、崩潰與 overlay hi-res 解法 |
 | [`docs/COPY_PROTECTION.md`](docs/COPY_PROTECTION.md) | **防拷靜態分析**：Elvira 1 無引擎防拷檢查點、`_copyProtection=false` 為 no-op、實測不擋玩家 |
+| [`docs/TESTING.md`](docs/TESTING.md) | **測試與驗證手法** —— headless 環境參數、座標換算與面板熱點、A/B 差異判定、插樁、ASan 標準掃描矩陣、反組譯,以及踩過的誤判 |
 | [`docs/BUG_002VGA_ZONE0.md`](docs/BUG_002VGA_ZONE0.md) | **`Can't load 002.VGA` 追查報告**：撞牆就中止的完整分析——遊戲腳本的條件分派缺預設分支導致畫面編號為 0，反組譯過程、修法、驗證與有效性威脅 |
 | [`docs/BUGFIX_NOTES.md`](docs/BUGFIX_NOTES.md) | **疊層對齊除錯**：動詞標籤與點擊判定框錯位、模態選單在疊層下隱形、選單中文化 |
 | [`docs/PROGRESS.md`](docs/PROGRESS.md) | 各階段進度紀錄 |
