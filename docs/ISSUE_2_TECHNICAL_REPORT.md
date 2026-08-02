@@ -17,8 +17,8 @@
 | 已證實（開發端） | 存讀檔 Enter 卡住是 Return 被全域「跳過片頭」鍵位映射吞掉 | 真實 GUI 可輸入 `TESTA`，但 Return 不會產生存檔；移除全域映射後同路徑成功 |
 | 已通過（開發端） | 修後 Return 與數字鍵盤 Enter 均可完成存讀檔 | Docker/Xvfb 建立 2,666-byte `elvira1.001`，再以 KP Enter 載入；程序存活且錯誤掃描為空 |
 | 已通過（開發端） | 目前 Linux 工作樹版本可完成一般守衛戰 | 玩家 slot 4 正常探索與開門後遇藍甲守衛；44 次攻防後敵人消失、探索 UI 恢復、程序存活，錯誤掃描為空 |
-| 未通過玩家驗收 | issue #2 尚未完全關閉 | 一般守衛戰已由開發端完成，但尚未涵蓋所有特殊敵人、Boss、macOS 玩家原路徑與三平台實際封裝 |
-| 進行中 | Linux、Windows、macOS 三平台 v1.2.4 重新打包 | 公開版維持 patch-only；含 GOG 資料與 ROM 的完整版只留本機 |
+| 未通過玩家驗收 | issue #2 尚未完全關閉 | 一般守衛戰已由開發端完成，但尚未涵蓋所有特殊敵人、Boss 與 macOS 玩家原路徑 |
+| 已通過（封裝端） | Linux、Windows、macOS 三平台 v1.2.4 已重新打包 | 公開版維持 patch-only；含 GOG 資料與 ROM 的完整版只留本機；詳見下方雜湊與驗證紀錄 |
 
 ## 問題如何被誤判
 
@@ -82,12 +82,31 @@ issue 的最新證據指出兩條尚未關閉的玩家路徑：
 2. 在存檔與讀檔各完成一次文字輸入、Enter 確認、離開選單與重新載入；保留
    log 及存檔雜湊。
 3. 全螢幕與視窗互切後重做上述兩條，確認 overlay active area 重建後仍一致。
-4. Linux、Windows、macOS 的實際出貨包各做同路徑冒煙測試；不能只測工作樹執行檔。
+4. 在 macOS 實機由實際出貨包重跑同一路徑；Linux 與 Windows 出貨包已完成
+   Docker/Xvfb 與 Wine 啟動冒煙測試，macOS universal 封包則已通過雲端雙架構建置與封裝。
 5. 玩家確認原回報路徑通過後，再關閉 issue #2。
 
 ## 三平台完整包
 
-狀態：**v1.2.4 重新打包中**。完整包會包含使用者合法持有的 GOG 遊戲資料，因此
-只能留在本機，不能提交到 patch-only 公開儲存庫，也不能附加到 GitHub Release。
-完成後應在此補上三個產物名稱、SHA-256、封裝來源提交、各平台冒煙測試，以及
-Docker 容器清理狀態。
+狀態：**v1.2.4 已完成重新打包**。封裝來源為提交 `6605597` 加上本次 Windows
+UTF-8 ZIP 修正；最終發行標籤與提交列於 GitHub Release。完整包包含使用者合法
+持有的 GOG 遊戲資料，因此只留在本機，不提交到 patch-only 公開儲存庫，也不附加
+到 GitHub Release。
+
+| 本機完整包 | SHA-256 |
+|---|---|
+| `古堡禁地-CHT-FULL-linux-x86_64.tar.gz` | `79fd1c189570af416640a916659419709a8a023f6235d49c12893dc1d30b50e2` |
+| `古堡禁地-CHT-FULL-x86_64.AppImage` | `fcc01dd05e05afbbe0f7dd1750979f6f3bc66b9d904ab32bfdc76298c680f755` |
+| `古堡禁地-CHT-FULL-windows-x64.zip` | `2fea78d30c04eb321f70ffc5656da750328f28d7df213ef3a5829d42ddf10333` |
+| `古堡禁地-CHT-FULL-macos-universal.tar.gz` | `0d9fb16ce99b4d2797ab46de6987d09eee69e512cfead999aef719559e981763` |
+
+封包驗證結果：
+
+- Linux tar.gz 與 AppImage 都由實際封包啟動 15 秒，逾時結束前程序持續存活，
+  未見崩潰、斷言或致命錯誤。
+- Windows ZIP 以 Wine 由實際封包啟動 15 秒，逾時結束前程序持續存活；所有中文
+  ZIP 項目均設定 UTF-8 旗標，兩版 `README.txt` 均保留 UTF-8 BOM。
+- macOS 由 GitHub Actions 在 `macos-14` 重新編譯 `x86_64`／`arm64` ScummVM 與
+  SDL2 2.30.9，合併為 universal app 後產生 tar.gz 與 DMG；所有步驟成功。
+- 公開版逐項掃描未含 `gamepc`、VGA 遊戲資料或 MT-32 ROM；各完整版逐項確認含
+  `gamepc`、繁中譯表與兩個 MT-32 ROM。

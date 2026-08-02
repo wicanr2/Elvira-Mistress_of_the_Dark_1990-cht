@@ -79,14 +79,17 @@ docker run --rm -v "$PROJ:/w" -w /w debian:bookworm-slim bash -c '
   printf "@echo off\r\ncd /d %%~dp0\r\nif not exist saves mkdir saves\r\nscummvm.exe -p game --themepath=data --extrapath=game --savepath=saves --music-driver=adlib --scaler=normal --scale-factor=3 --no-aspect-ratio --auto-detect %%*\r\npause\r\n" > "$ENG/play-elvira.bat"
   printf "@echo off\r\ncd /d %%~dp0\r\nif not exist saves mkdir saves\r\nscummvm.exe -p game --themepath=data --extrapath=game --savepath=saves --music-driver=mt32 --scaler=normal --scale-factor=3 --no-aspect-ratio --auto-detect %%*\r\npause\r\n" > "$ENG/play-elvira-mt32.bat"
   printf "\xEF\xBB\xBF古堡禁地 (Elvira 1, 1990) 繁體中文版 Windows\r\n\r\n1. 把合法擁有的 Elvira Floppy/DOS 全部檔案複製進 game\\\\ 資料夾。\r\n2. 雙擊 play-elvira.bat 遊玩(AdLib/OPL 配樂)。\r\n3. 想要原版 MT-32 配樂: 把 MT32_CONTROL.ROM / MT32_PCM.ROM 放進 game\\\\,\r\n   改用 play-elvira-mt32.bat 啟動。\r\n\r\n熱鍵: F7 無敵, TAB 地圖; 存檔 Alt+數字, 讀檔 Ctrl+數字。\r\n" > "$ENG/README.txt"
-  ( cd /tmp && rm -f /w/dist-all/古堡禁地-CHT-windows-x64.zip && zip -qr /w/dist-all/古堡禁地-CHT-windows-x64.zip "古堡禁地-CHT-windows-x64" )
+  # Python zipfile 會為非 ASCII 路徑設定 UTF-8 旗標（general-purpose bit 11）。
+  # Info-ZIP 在 Linux 上只寫入 UTF-8 位元組卻不設旗標，Windows 內建解壓縮會把中文檔名解成亂碼。
+  ( cd /tmp && rm -f /w/dist-all/古堡禁地-CHT-windows-x64.zip \
+    && python3 -m zipfile -c /w/dist-all/古堡禁地-CHT-windows-x64.zip "古堡禁地-CHT-windows-x64" )
 
   # ── 完整版(本機保留): 加遊戲原檔 + MT-32 ROM ──
   cp -rL /w/run_game/* "$OUT/game/" 2>/dev/null || true
   printf "\xEF\xBB\xBF古堡禁地 (Elvira 1, 1990) 繁體中文版 Windows 完整版\r\n\r\n雙擊 play-elvira.bat 即可遊玩(已含遊戲檔與 MT-32 ROM)。\r\n本包含版權素材, 僅供自己保留, 請勿散佈。\r\n\r\n熱鍵: F7 無敵, TAB 地圖; 存檔 Alt+數字, 讀檔 Ctrl+數字。\r\n" > "$OUT/README.txt"
   ( cd /tmp && mv "古堡禁地-CHT-win64" "古堡禁地-CHT-FULL-win64" \
     && rm -f /w/dist-all/古堡禁地-CHT-FULL-windows-x64.zip \
-    && zip -qr /w/dist-all/古堡禁地-CHT-FULL-windows-x64.zip "古堡禁地-CHT-FULL-win64" )
+    && python3 -m zipfile -c /w/dist-all/古堡禁地-CHT-FULL-windows-x64.zip "古堡禁地-CHT-FULL-win64" )
 
   chown -R '"$(id -u):$(id -g)"' /w/dist-all 2>/dev/null || true
   echo "=== 產物 ==="; ls -lh /w/dist-all/*windows*.zip
