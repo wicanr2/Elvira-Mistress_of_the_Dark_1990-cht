@@ -82,14 +82,12 @@ issue 的最新證據指出兩條尚未關閉的玩家路徑：
 
 - 存讀檔畫面輸入檔名後按 Enter 的問題，已在開發端完成根因修正與真實 GUI
   回歸，仍待玩家 macOS 驗收。
-- 玩家曾回報戰鬥仍出現先前錯誤，但未附該次新 log。開發端後續已由玩家
-  slot 4 經正常探索與開門遇到藍甲守衛，交替執行四種戰鬥命令；第 44 次操作後
-  敵人消失、探索介面恢復，程序持續存活，log 未見 `001.VGA`／`002.VGA`／
-  `sprite id 0`、SIGSEGV 或 `error:`。因此一般守衛戰已通過開發端驗證，但仍不
-  等於所有特殊戰鬥與玩家 macOS 路徑均已驗收。
+- 玩家 v1.2.4 的新繁中／英文 log 已直接證實語意翻譯污染。v1.2.5 的乾淨編譯版
+  載入玩家 slot 4 後，開門轉場期間程序存活，log 未見 `002.VGA`、sprite 0 或
+  致命錯誤；無頭操作未可靠完成整場戰鬥，因此不能把這輪寫成完整戰鬥驗收。
 
-因此目前可以說「座標錯位根因已被證實且部分玩家驗收通過」，不能說「所有當機、
-凍結與存讀檔問題均已解決」。
+因此目前可以說「剩餘戰鬥中止的語意翻譯根因已證實並完成程式修正」，不能說
+「玩家原路徑已在 macOS 完整驗收」。
 
 ## issue 關閉條件
 
@@ -98,30 +96,32 @@ issue 的最新證據指出兩條尚未關閉的玩家路徑：
 2. 在存檔與讀檔各完成一次文字輸入、Enter 確認、離開選單與重新載入；保留
    log 及存檔雜湊。
 3. 全螢幕與視窗互切後重做上述兩條，確認 overlay active area 重建後仍一致。
-4. 在 macOS 實機由實際出貨包重跑同一路徑；Linux 與 Windows 出貨包已完成
-   Docker/Xvfb 與 Wine 啟動冒煙測試，macOS universal 封包則已通過雲端雙架構建置與封裝。
+4. 在 macOS 實機由實際出貨包重跑同一路徑；Linux 出貨包已完成 Docker/Xvfb
+   啟動冒煙測試，macOS universal 封包已通過雲端雙架構建置與封裝。Windows 包
+   已完成靜態內容與編碼驗證，但本輪 Wine 容器無法建立 graphics mode。
 5. 玩家確認原回報路徑通過後，再關閉 issue #2。
 
 ## 三平台完整包
 
-狀態：**v1.2.4 已完成重新打包**。封裝來源為提交 `6605597` 加上本次 Windows
-UTF-8 ZIP 修正；最終發行標籤與提交列於 GitHub Release。完整包包含使用者合法
+狀態：**v1.2.5 已完成重新打包**。封裝來源為提交 `b436a73`，發行標籤為
+`v1.2.5-cht`。完整包包含使用者合法
 持有的 GOG 遊戲資料，因此只留在本機，不提交到 patch-only 公開儲存庫，也不附加
 到 GitHub Release。
 
 | 本機完整包 | SHA-256 |
 |---|---|
-| `古堡禁地-CHT-FULL-linux-x86_64.tar.gz` | `79fd1c189570af416640a916659419709a8a023f6235d49c12893dc1d30b50e2` |
-| `古堡禁地-CHT-FULL-x86_64.AppImage` | `fcc01dd05e05afbbe0f7dd1750979f6f3bc66b9d904ab32bfdc76298c680f755` |
-| `古堡禁地-CHT-FULL-windows-x64.zip` | `2fea78d30c04eb321f70ffc5656da750328f28d7df213ef3a5829d42ddf10333` |
-| `古堡禁地-CHT-FULL-macos-universal.tar.gz` | `0d9fb16ce99b4d2797ab46de6987d09eee69e512cfead999aef719559e981763` |
+| `古堡禁地-CHT-FULL-linux-x86_64.tar.gz` | `e78b6c71d0d7b7929209a8cad3fb6b1ef343aba68d1a30d372cd7f2eab8afbaf` |
+| `古堡禁地-CHT-FULL-x86_64.AppImage` | `99b2747a59297d5e10df40ff6202f042c1813f4c165132b8e188bab5b6593c5c` |
+| `古堡禁地-CHT-FULL-windows-x64.zip` | `1ebb1b64f5f6958c5b5b5d11dd512a368a3fec075832d6b813b9dfb0113970d2` |
+| `古堡禁地-CHT-FULL-macos-universal.tar.gz` | `a4f16506f60ae9425af903f781a338eaa4ef41eb72d2d33a22ac57b4b3b895ca` |
 
 封包驗證結果：
 
 - Linux tar.gz 與 AppImage 都由實際封包啟動 15 秒，逾時結束前程序持續存活，
   未見崩潰、斷言或致命錯誤。
-- Windows ZIP 以 Wine 由實際封包啟動 15 秒，逾時結束前程序持續存活；所有中文
-  ZIP 項目均設定 UTF-8 旗標，兩版 `README.txt` 均保留 UTF-8 BOM。
+- Windows ZIP 可由 Wine 掃描並偵測內含遊戲，但容器的虛擬顯示無法建立 graphics
+  mode，未完成 GUI 冒煙測試；所有中文 ZIP 項目均設定 UTF-8 旗標，兩版
+  `README.txt` 均保留 UTF-8 BOM，執行檔與次級 DLL 相依均已盤點。
 - macOS 由 GitHub Actions 在 `macos-14` 重新編譯 `x86_64`／`arm64` ScummVM 與
   SDL2 2.30.9，合併為 universal app 後產生 tar.gz 與 DMG；所有步驟成功。
 - 公開版逐項掃描未含 `gamepc`、VGA 遊戲資料或 MT-32 ROM；各完整版逐項確認含
