@@ -1,4 +1,20 @@
-# issue #2 技術報告：輸入座標錯位、zone 0 與 v1.2.4 驗證
+# issue #2 技術報告：輸入座標錯位、語意翻譯污染與 v1.2.5 驗證
+
+## 2026-08-02 玩家 v1.2.4 對照結果
+
+玩家的 v1.2.4 測試把問題縮到同一份遊戲資料、同一路徑、兩種語言模式：英文模式
+可進入戰鬥，繁中模式在戰鬥初始化時誤載 `002.VGA`。兩份 log 的核心資料雜湊相同，
+因此 GOG 版本差異與缺檔假說均不成立。
+
+程式追查確認 `getStringPtrByID()` 原本被當作全域翻譯入口，但 `oe1_isCalled()` 也用
+它做不分大小寫的腳本條件比較。原始字串 `The soldier`／`the soldier`、
+`The knight`／`the knight`、`The skeleton`／`the skeleton` 在英文下相等；中文譯文
+分別帶有不同量詞或指示詞，翻譯後不再相等。敵人分類因此未設定戰鬥圖片變數，
+下游才出現 sprite 0／zone 0。這是已證實的因果鏈，不是 Elvira 或 GOG 版本問題。
+
+v1.2.5 為 `getStringPtrByID()` 增加明確的 `localize` gate，預設仍翻譯顯示文字；
+`oe1_isCalled()` 與 `oe1_loadGame()` 則明確要求原始字串。修正責任邊界，而不是靠
+統一幾個中文名稱來迎合比較，避免其他語意呼叫點日後再次受翻譯內容影響。
 
 本報告整理 [GitHub issue #2](https://github.com/wicanr2/Elvira-Mistress_of_the_Dark_1990-cht/issues/2)
 截至 2026-08-02 17:25（Asia/Taipei）的證據。詳細的歷史追查與勘誤保留在

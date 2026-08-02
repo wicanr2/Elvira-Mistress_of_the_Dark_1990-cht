@@ -202,7 +202,7 @@ index af27f131..0a53f293 100644
  
  	if (getGameType() != GType_PP && getGameType() != GType_FF) {
 diff --git a/engines/agos/agos.h b/engines/agos/agos.h
-index 6a8d2237..bb141d62 100644
+index 6a8d2237..c2ce8094 100644
 --- a/engines/agos/agos.h
 +++ b/engines/agos/agos.h
 @@ -37,6 +37,7 @@
@@ -263,6 +263,15 @@ index 6a8d2237..bb141d62 100644
  	bool _vgaVar9;
  	int16 _chanceModifier;
  	bool _restoreWindow6;
+@@ -767,7 +811,7 @@ protected:
+ 	byte *uncompressToken(byte a, byte *ptr);
+ 
+ 	void showMessageFormat(MSVC_PRINTF const char *s, ...) GCC_PRINTF(2, 3);
+-	const byte *getStringPtrByID(uint16 stringId, bool upperCase = false);
++	const byte *getStringPtrByID(uint16 stringId, bool upperCase = false, bool localize = true);
+ 	const byte *getLocalStringByID(uint16 stringId);
+ 	uint getNextStringID();
+ 
 @@ -958,6 +1002,11 @@ protected:
  	void renderStringAmiga(uint vgaSpriteId, uint color, uint width, uint height, const char *txt);
  	void renderString(uint vgaSpriteId, uint color, uint width, uint height, const char *txt);
@@ -1588,7 +1597,7 @@ index ab214b27..56380a66 100644
  
  // Elvira 2 specific
 diff --git a/engines/agos/saveload.cpp b/engines/agos/saveload.cpp
-index b2095d1e..73e55fea 100644
+index b2095d1e..7d16d4d8 100644
 --- a/engines/agos/saveload.cpp
 +++ b/engines/agos/saveload.cpp
 @@ -258,17 +258,27 @@ bool AGOSEngine::confirmOverWrite(WindowBlock *window) {
@@ -1716,7 +1725,7 @@ index b2095d1e..73e55fea 100644
  }
  
 diff --git a/engines/agos/script_e1.cpp b/engines/agos/script_e1.cpp
-index 629cede8..bc0b7988 100644
+index 629cede8..1337734e 100644
 --- a/engines/agos/script_e1.cpp
 +++ b/engines/agos/script_e1.cpp
 @@ -529,7 +529,7 @@ void AGOSEngine_Elvira1::oe1_moveDirn() {
@@ -1751,7 +1760,30 @@ index 629cede8..bc0b7988 100644
  	}
  }
  
-@@ -936,10 +937,21 @@ restart:
+@@ -610,7 +611,11 @@ void AGOSEngine_Elvira1::oe1_isCalled() {
+ 	// 135: childstruct fr2 is
+ 	Item *item = getNextItemPtr();
+ 	uint stringId = getNextStringID();
+-	setScriptCondition(!scumm_stricmp((const char *)getStringPtrByID(item->itemName), (const char *)getStringPtrByID(stringId)));
++	// 非上游：這是腳本語意比較，不是顯示文字。若先套用翻譯，原本只差大小寫的
++	// "The soldier" / "the soldier" 可能變成「那名士兵」/「士兵」，使敵人分類
++	// 失敗，戰鬥圖片變數保持 0，最後誤載不存在的 002.VGA。
++	setScriptCondition(!scumm_stricmp((const char *)getStringPtrByID(item->itemName, false, false),
++	                                    (const char *)getStringPtrByID(stringId, false, false)));
+ }
+ 
+ void AGOSEngine_Elvira1::oe1_cFlag() {
+@@ -686,7 +691,8 @@ void AGOSEngine_Elvira1::oe1_doorExit() {
+ void AGOSEngine_Elvira1::oe1_loadGame() {
+ 	// 202: load restart state
+ 	uint16 stringId = getNextStringID();
+-	loadGame((const char *)getStringPtrByID(stringId), true);
++	// 非上游：內部存檔名稱是資源識別字，不得套用顯示翻譯。
++	loadGame((const char *)getStringPtrByID(stringId, false, false), true);
+ }
+ 
+ void AGOSEngine_Elvira1::oe1_clearUserItem() {
+@@ -936,10 +942,21 @@ restart:
  		break;
  	}
  
@@ -1777,7 +1809,7 @@ index 629cede8..bc0b7988 100644
  
  	if (continueOrQuit() == 0x7FFE) {
  		printScroll();
-@@ -971,10 +983,19 @@ restart:
+@@ -971,10 +988,19 @@ restart:
  			break;
  		}
  
@@ -1801,7 +1833,7 @@ index 629cede8..bc0b7988 100644
  
  		if (confirmYesOrNo(120, 62) == 0x7FFF) {
  			quitGame();
-@@ -986,6 +1007,9 @@ restart:
+@@ -986,6 +1012,9 @@ restart:
  	}
  
  	clearHiResTextLayer();
@@ -1811,7 +1843,7 @@ index 629cede8..bc0b7988 100644
  	restartAnimation();
  	_gameStoppedClock = getTime() - pauseTime + _gameStoppedClock;
  }
-@@ -1041,20 +1065,22 @@ void AGOSEngine::lobjFunc(Item *i, const char *f) {
+@@ -1041,20 +1070,22 @@ void AGOSEngine::lobjFunc(Item *i, const char *f) {
  				showMessageFormat("%s", f);
  			n = 1;
  		} else {
@@ -1839,9 +1871,18 @@ index 629cede8..bc0b7988 100644
  }
  
 diff --git a/engines/agos/string.cpp b/engines/agos/string.cpp
-index 1aa590b8..1f94d443 100644
+index 1aa590b8..0ebb1356 100644
 --- a/engines/agos/string.cpp
 +++ b/engines/agos/string.cpp
+@@ -112,7 +112,7 @@ byte *AGOSEngine::uncompressToken(byte a, byte *ptr) {
+ 	return ptr;
+ }
+ 
+-const byte *AGOSEngine::getStringPtrByID(uint16 stringId, bool upperCase) {
++const byte *AGOSEngine::getStringPtrByID(uint16 stringId, bool upperCase, bool localize) {
+ 	const byte *stringPtr;
+ 	byte *dst;
+ 
 @@ -135,6 +135,26 @@ const byte *AGOSEngine::getStringPtrByID(uint16 stringId, bool upperCase) {
  		Common::strlcpy((char *)dst, (const char *)stringPtr, 180);
  	}
@@ -1849,7 +1890,7 @@ index 1aa590b8..1f94d443 100644
 +	// 非上游: 古堡禁地(Elvira 1)繁中注入 — 依 stringId 換成 Big5 完整譯文。
 +	// 提前 return, 避開下方 upperCase(toupper 會撞壞 Big5 lead byte)。
 +	// getStringPtrByID 是 A/B/C 類文字(物品名/敘述/對白)的共用 chokepoint。
-+	if (_chtActive && _chtSubLang == 1) {
++	if (localize && _chtActive && _chtSubLang == 1) {
 +		Common::HashMap<uint32, Common::String>::const_iterator it = _cht.table.find(stringId);
 +		if (it != _cht.table.end()) {
 +			_chtBufSlot ^= 1;
