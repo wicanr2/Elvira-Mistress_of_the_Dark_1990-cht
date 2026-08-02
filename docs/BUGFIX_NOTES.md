@@ -1,5 +1,8 @@
 # 中文化除錯紀錄：疊層對齊與模態選單
 
+> issue #2 的現行證據、GOG 版比對、v1.2.3 回歸邊界與尚未通過的玩家路徑，
+> 集中整理在 [`ISSUE_2_TECHNICAL_REPORT.md`](ISSUE_2_TECHNICAL_REPORT.md)。
+
 > **2026-08-02 補充**：逐一對齊 640×400 基準座標仍不足以保證實機可點。
 > Retina、4:3 校正或視窗縮放時，overlay 與遊戲各有不同 draw rect；舊版以
 > `showOverlay(false)` 顯示完整 overlay，卻讓輸入依遊戲 rect 換算，造成整層
@@ -61,6 +64,7 @@
 | 狀態列 EXP 數值被黑掉 | 面板黑底填到 overlay y282，吃掉了狀態列右端 | 黑底收斂成「第一個到最後一個判定框」的範圍（y16–246）|
 | 暫停／存讀檔選單是英文 | 這幾段訊息硬編碼在引擎裡（`oe1_pauseGame` / `userGame` / `confirmOverWrite`），不經字串表 | 加繁中分支：遊戲暫停／繼續／結束、確定要離開嗎、插入存檔磁片並輸入檔名、檔案已存在要覆蓋嗎、是／否 |
 | 讀檔後畫面殘留舊字 | 疊層文字層是持久的，不會被遊戲重繪蓋掉 | `loadGame` 結尾清空文字層；選單開關時也各清一次 |
+| 輸入存讀檔名稱後 Enter 無反應 | `RETURN`／`KP_ENTER` 被全域綁為「跳過片頭」自訂動作，原始鍵盤事件到不了 `userGame()` | 移除全域映射；控制鍵改依 `keycode` 判斷，檔名字元仍依 `ascii` |
 | 手冊說按 Enter 可跳過片頭，按了沒用 | ScummVM 只把「跳過片頭」綁在 Escape | `metaengine.cpp` 為 elvira1/elvira2/waxworks 補綁 RETURN／KP_ENTER |
 | 譯表 id 213「是／否」欄位 | 中文比英文短，卻沿用英文的空格數 | 依英文 `YES`(第 9 欄)／`NO`(第 18 欄)重排 |
 

@@ -1552,23 +1552,6 @@ index 06dfaef6..34e9ce9b 100644
  				Common::Rect dirtyRect(0, 133, _screenWidth, _screenHeight);
  				updateBackendSurface(&dirtyRect);
  			}
-diff --git a/engines/agos/metaengine.cpp b/engines/agos/metaengine.cpp
-index be2d5090..6f1f34af 100644
---- a/engines/agos/metaengine.cpp
-+++ b/engines/agos/metaengine.cpp
-@@ -245,6 +245,12 @@ Common::KeymapArray AgosMetaEngine::initKeymaps(const char *target) const {
- 	act->setCustomEngineActionEvent(kActionExitCutscene);
- 	act->addDefaultInputMapping("ESCAPE");
- 	act->addDefaultInputMapping("JOY_Y");
-+	// 非上游: Elvira/Waxworks 原版手冊記載按 Enter 可跳過片頭, ScummVM 只綁 ESCAPE。
-+	// 補上 RETURN/KP_ENTER 以符合手冊與玩家預期(cutscene 期間 Enter 無其他用途)。
-+	if (gameId == "elvira1" || gameId == "elvira2" || gameId == "waxworks") {
-+		act->addDefaultInputMapping("RETURN");
-+		act->addDefaultInputMapping("KP_ENTER");
-+	}
- 	if (gameId == "simon2" || gameId == "feeble")
- 		act->addDefaultInputMapping("F5");
- 	engineKeyMap->addAction(act);
 diff --git a/engines/agos/module.mk b/engines/agos/module.mk
 index 37432e1e..be4c4ce4 100644
 --- a/engines/agos/module.mk
@@ -1671,7 +1654,26 @@ index b2095d1e..73e55fea 100644
  
  	memset(_saveBuf, 0, 10);
  	name = _saveBuf;
-@@ -388,6 +411,9 @@ restart:
+@@ -340,7 +363,17 @@ restart:
+ 
+ 		while (!shouldQuit()) {
+ 			delay(10);
+-			if (_keyPressed.ascii && _keyPressed.ascii < 128) {
++			// Return/Enter may arrive with ascii == 0 (notably through some
++			// macOS keyboard/IME paths).  Keycode is the reliable signal for
++			// control keys; printable filename characters still use ascii.
++			if (_keyPressed.keycode == Common::KEYCODE_RETURN ||
++				_keyPressed.keycode == Common::KEYCODE_KP_ENTER) {
++				i = 13;
++				break;
++			} else if (_keyPressed.keycode == Common::KEYCODE_BACKSPACE) {
++				i = 8;
++				break;
++			} else if (_keyPressed.ascii && _keyPressed.ascii < 128) {
+ 				i = _keyPressed.ascii;
+ 				break;
+ 			}
+@@ -388,6 +421,9 @@ restart:
  	}
  
  	clearHiResTextLayer();
@@ -1681,7 +1683,7 @@ index b2095d1e..73e55fea 100644
  	restartAnimation();
  	_gameStoppedClock = getTime() - saveTime + _gameStoppedClock;
  }
-@@ -1018,6 +1044,17 @@ void AGOSEngine::fileError(WindowBlock *window, bool saveError) {
+@@ -1018,6 +1054,17 @@ void AGOSEngine::fileError(WindowBlock *window, bool saveError) {
  		}
  	}
  
@@ -1699,7 +1701,7 @@ index b2095d1e..73e55fea 100644
  	if (getGameType() == GType_ELVIRA1) {
  		printScroll();
  		window->textColumn = 0;
-@@ -1152,6 +1189,13 @@ bool AGOSEngine::loadGame(const Common::String &filename, bool restartMode) {
+@@ -1152,6 +1199,13 @@ bool AGOSEngine::loadGame(const Common::String &filename, bool restartMode) {
  
  	_videoLockOut &= ~0x100;
  
