@@ -213,6 +213,7 @@ build/scummvm-src/scummvm -p run_game --auto-detect --music-driver=mt32
 | [`docs/AGOS_PITFALLS.md`](docs/AGOS_PITFALLS.md) | **AGOS 引擎中文化踩過的坑總覽** —— 疊層座標／越界崩潰／字型／patch 維護／平台打包,每條含根因與驗證方法 |
 | [`docs/DEV_SETUP.md`](docs/DEV_SETUP.md) | 開發環境、改譯文重烘字型、改引擎重生 patch、headless 驗證、打包 |
 | [`docs/RESEARCH.md`](docs/RESEARCH.md) | 遊戲背景考據、六把鑰匙攻略與當年攻略來源 |
+| [`docs/WALKTHROUGH_CHT.md`](docs/WALKTHROUGH_CHT.md) | **繁體中文完整攻略**：操作與戰鬥、開局整備、六把金鑰、迷宮、地下墓穴及驗證狀態 |
 | [`docs/MANUAL_INDEX.md`](docs/MANUAL_INDEX.md) | 軟體世界珍藏版 118 官方手冊要點索引 |
 | [`docs/MANUAL_DIARY.md`](docs/MANUAL_DIARY.md) | **手冊全文**：〈我的日記〉劇情引子（愛梅達身世、六鑰、惡魔統治殘冊）+ 登場人物對照 |
 | [`docs/MANUAL_SPELLBOOK.md`](docs/MANUAL_SPELLBOOK.md) | **手冊全文**：〈愛梅達的魔法書〉25 道配方 + 附錄一法術說明 + 附錄二提示 + 材料原文對照 |
